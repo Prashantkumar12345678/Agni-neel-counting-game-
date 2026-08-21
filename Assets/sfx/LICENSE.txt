@@ -1,0 +1,29 @@
+Sound effects in this folder
+===========================
+
+Source : Kenney (https://kenney.nl) — "Interface Sounds", "Impact Sounds",
+         "Music Jingles", "RPG Audio" and "Casino Audio"
+License: Creative Commons Zero (CC0 1.0) — public domain
+         http://creativecommons.org/publicdomain/zero/1.0/
+
+CC0 means these files are free for any use, commercial included, with no
+attribution required. The credit above is courtesy, not obligation.
+
+File            Taken from
+--------------  --------------------------------------------------------------
+count.ogg       interface-sounds / glass_001.ogg     pitched up a major scale,
+                                                     one degree per count
+key.ogg         casino-audio     / chip-lay-2.ogg    a soft tactile tap
+tap.ogg         interface-sounds / click_002.ogg     the hand nudge's tap
+panel-open.ogg  interface-sounds / open_001.ogg
+pad-open.ogg    rpg-audio        / bookOpen.ogg
+correct.ogg     interface-sounds / confirmation_001.ogg
+coins.ogg       rpg-audio        / handleCoins.ogg   reward rattle after correct
+wrong.ogg       interface-sounds / question_002.ogg  a soft "hmm?", not a buzzer
+berry-fly.ogg   interface-sounds / glass_003.ogg
+berry-land.ogg  impact-sounds    / impactGlass_light_001.ogg
+cap-close.ogg   rpg-audio        / bookClose.ogg     a solid, satisfying close
+cap-seal.ogg    interface-sounds / glass_004.ogg     the shine as it seals
+creak.ogg       rpg-audio        / creak2.ogg        spooky house, on the idle nudge
+stage.ogg       music-jingles    / Pizzicato jingles / jingles_PIZZI10.ogg
+win.ogg         music-jingles    / Pizzicato jingles / jingles_PIZZI00.ogg

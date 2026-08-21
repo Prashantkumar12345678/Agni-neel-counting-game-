@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agni & Nil — Counting Game</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Itim&family=Londrina+Solid&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="viewport">
+    <!-- Fixed 1920 x 1080 design stage (Figma 190:495), uniformly scaled to fit.
+         Layer order below mirrors the Figma z-order of the frame. -->
+    <main class="stage" id="stage" aria-label="Counting game — screen 1">
+
+      <!-- The camera. Everything in the scene lives in here so it can be
+           panned as one; the stage around it stays put and keeps clipping. -->
+      <!-- The room. Outside the camera, because the camera moves across the
+           table rather than taking the table with it. -->
+      <img class="bg" src="Assets/background.png" alt="" aria-hidden="true" />
+
+      <div class="world" id="world">
+
+        <!-- Loose treats: blueberries scattered on the table (190:538 … 190:553) -->
+        <div class="treats" id="treats"></div>
+
+        <!-- Jar: holds the answer display + keypad (190:506) -->
+        <img class="jar" src="Assets/Jar.png" alt="" aria-hidden="true" />
+
+        <!-- Instruction panel (190:507). The plate opens after Agni lands, then
+             the copy types itself out. -->
+        <div class="panel">
+          <div class="panel__plate" id="panelPlate"></div>
+          <!-- Standing Agni: the left 161 x 161 of the panel SVG, which is
+               exactly this layer in the design (190:513) -->
+          <div class="agni-stand" id="agniStand">
+            <img src="Assets/Intrustiction panel.svg" alt="Agni the dragon" />
+          </div>
+          <p class="panel__text" id="panelText">
+            <span class="panel__typed" id="panelTyped"></span><span class="panel__caret" id="panelCaret" aria-hidden="true"></span>
+          </p>
+        </div>
+
+        <!-- Agni's flight — swapped for the standing still once he lands -->
+        <img class="agni" id="agni" src="Assets/agni fly gif.gif" alt="" aria-hidden="true" />
+
+        <!-- Carved wooden cap — drops on once every treat is in the jar -->
+        <img class="jar-lid" id="jarLid" src="Assets/Jar cap.png" alt="" aria-hidden="true" />
+
+        <!-- Sparkle on the closed jar, per the script's correct-feedback row -->
+        <div class="sparkles" id="sparkles" aria-hidden="true"></div>
+
+        <!-- Answer panel (190:516). Waits centred in the jar; tapping it lifts
+             the panel to its design spot and opens the pad underneath. -->
+        <div class="answer" id="answer">
+          <div class="display crop" aria-hidden="true">
+            <img src="Assets/answer-panel.png" alt="" />
+          </div>
+          <output class="display__value" id="displayValue" aria-live="polite" aria-label="Your answer"></output>
+          <button class="display__hit" id="displayHit" type="button" aria-label="Open the number pad"></button>
+        </div>
+
+        <!-- Hand nudge: guides the child through the activity. `hand.webp` is
+             312 x 446 with its fingertip at the very top, 36.7% across — that
+             point is the anchor, so --hand-x/-y are the thing being pointed at. -->
+        <div class="hand" id="hand" aria-hidden="true">
+          <span class="hand__ripple"></span>
+          <img class="hand__art" src="Assets/hand.webp" alt="" />
+        </div>
+
+        <!-- Keypad plates (190:518) — one image; the keys below are transparent hit areas -->
+        <div class="keypad crop" aria-hidden="true">
+          <img src="Assets/keypad.png" alt="" />
+        </div>
+        <div class="keys is-locked" id="keys" role="group" aria-label="Number keypad"></div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
