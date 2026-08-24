@@ -6,6 +6,11 @@
    ============================================================ */
 
 :root {
+  /* Alongside the meta tag: no browser recolouring of this artwork, in either
+     auto-dark or a forced-colours mode. */
+  color-scheme: only light;
+  forced-color-adjust: none;
+
   --design-w: 1920;
   --design-h: 1080;
 
@@ -158,7 +163,10 @@ html, body {
    Both apply only after the last treat lands: earlier, the clip would cut
    off treats still in the air and the lift would show them over the rim. */
 .treats--in-jar {
-  clip-path: inset(240px 170px 75px 1160px round 24px 24px 178px 178px);
+  /* The jar's interior, and it has to move with the jar: at 1144 this box was
+     170 in from the right, and leaving it there after the jar moved sliced the
+     treats nearest the glass down one side. */
+  clip-path: inset(240px 110px 75px 1220px round 24px 24px 178px 178px);
   z-index: 3;
 }
 
@@ -193,14 +201,23 @@ html, body {
   position: absolute; inset: 0;
   transform-origin: 78px 156px;      /* where the berry meets the table */
 }
+/* Never recoloured, whatever the browser is doing to the rest of the page. */
+.treat__body > img, .pack__art, .bg, .jar, .jar-lid, .agni, .agni-stand > img {
+  forced-color-adjust: none;
+}
+
 .treat__body > img {
   position: absolute; left: 0; top: 0;
   width: var(--tw, 215px); height: var(--th, 208px);
 }
 
 /* Slow idle — a small rock in place. Duration and delay are set per berry
-   in script.js so no two are ever in step. */
-.treat--idle .treat__body {
+   in script.js so no two are ever in step.
+
+   Both this and the blink below only run while the stage is dozing: nothing
+   moves on its own while the child is playing, and after ten seconds with no
+   input the treats start breathing and blinking to invite one. */
+.stage--sleepy .treat--idle .treat__body {
   animation: treat-idle var(--idle-dur, 3400ms) var(--idle-delay, 0ms) ease-in-out infinite;
 }
 
@@ -224,7 +241,7 @@ html, body {
   transform-origin: top center;
 }
 
-.treat--idle .treat__lid {
+.stage--sleepy .treat--idle .treat__lid {
   animation: treat-blink var(--blink-dur, 4000ms) var(--blink-delay, 0ms)
              ease-in-out infinite;
 }
@@ -260,11 +277,16 @@ html, body {
    settled state afterwards, so the class can simply be dropped later. */
 .treat--in { animation: treat-in 420ms cubic-bezier(0.2, 1.5, 0.4, 1) both; }
 
+/* Grows in, and is opaque from its first frame. Fading it in meant four
+   hundred milliseconds of a treat at partial opacity over the purple table:
+   a green apple came out pale and washed, its white highlight went magenta,
+   its eyes went lavender, and the grain of the plank showed through it. That
+   is not an apple arriving — it is a ghost of one. The waiting class holds
+   opacity at 0 until the moment this starts, so the treat simply appears at
+   full strength and grows. */
 @keyframes treat-in {
-  from { opacity: 0;
-         transform: scale(calc(var(--treat-scale, 1) * 0.4)) rotate(var(--treat-rot, 0deg)); }
-  to   { opacity: 1;
-         transform: scale(var(--treat-scale, 1)) rotate(var(--treat-rot, 0deg)); }
+  from { transform: scale(calc(var(--treat-scale, 1) * 0.4)) rotate(var(--treat-rot, 0deg)); }
+  to   { transform: scale(var(--treat-scale, 1)) rotate(var(--treat-rot, 0deg)); }
 }
 
 /* Correct feedback, per the script: "the spooky treats giggle and fly inside
@@ -345,6 +367,20 @@ html, body {
   position: absolute;
   background-repeat: no-repeat;
   transform-origin: 50% 60%;
+  /* The crop reaches past its treat on every side (PACK_CELL_PAD), so its
+     edges are faded out: the sliver of the neighbours it takes in never shows,
+     and there is no hard boundary anywhere to read as a cut. Two linear masks
+     intersected rather than one radial, which would eat the corners. At rest
+     none of this is visible — the crop lies over the very artwork it came
+     from, so fading it only lets identical pixels through. */
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0, #000 9%, #000 91%, transparent 100%),
+    linear-gradient(to bottom, transparent 0, #000 9%, #000 91%, transparent 100%);
+  mask-image:
+    linear-gradient(to right, transparent 0, #000 9%, #000 91%, transparent 100%),
+    linear-gradient(to bottom, transparent 0, #000 9%, #000 91%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
 }
 .pack__cell.treat--glow {
   z-index: 2;
@@ -369,9 +405,10 @@ html, body {
 }
 .pack--in { animation: pack-in 480ms cubic-bezier(0.2, 1.4, 0.4, 1) both; }
 
+/* Opaque from the first frame, for the same reason as treat-in. */
 @keyframes pack-in {
-  from { opacity: 0; transform: scale(0.55); }
-  to   { opacity: 1; transform: scale(1); }
+  from { transform: scale(0.55); }
+  to   { transform: scale(1); }
 }
 
 /* No tray, no border. The packets are drawn with their own wrapper, and a
@@ -403,7 +440,7 @@ html, body {
    Jar (190:506)
    ------------------------------------------------------------ */
 .jar {
-  position: absolute; left: 1144px; top: 192px;
+  position: absolute; left: 1204px; top: 192px;
   width: 650px; height: 835px;
   object-fit: cover;
   opacity: var(--jar-opacity);
@@ -427,7 +464,7 @@ html, body {
    closed jar. Sits above the jar and the cap, below the hand.
    ------------------------------------------------------------ */
 .sparkles {
-  position: absolute; left: 1144px; top: 192px;
+  position: absolute; left: 1204px; top: 192px;
   width: 650px; height: 835px;
   z-index: 5;
   pointer-events: none;
@@ -453,7 +490,7 @@ html, body {
 }
 
 .jar-lid {
-  position: absolute; left: var(--cap-x, 1211px); top: var(--cap-y, 95px);
+  position: absolute; left: var(--cap-x, 1271px); top: var(--cap-y, 95px);
   width: var(--cap-w, 502.5px); height: var(--cap-h, 255.2px);
   z-index: 4;              /* always above the lifted treats layer */
   opacity: 0;
@@ -531,22 +568,43 @@ html, body {
   to   { transform: translate(0, 0); }
 }
 
-/* Instruction copy (190:535) — vertically centred on y = 118 */
+/* Instruction copy (190:535). The box is the plate itself — 988 x 120 at
+   (142, 62) — minus the dragon on its left, so centring inside it puts the
+   line on the plate's own middle. It used to start 23px lower than the plate
+   (a stale `top` left over beside a duplicated `height`), which is why the
+   copy sat low. */
 .panel__text {
-  position: absolute; left: 218px; top: 85px;
-  height: 66px;
-  display: flex; align-items: center;
-  height: 120px;         /* the plate, so a wrapped line stays centred in it */
+  position: absolute; left: 232px; top: 62px;
+  height: 120px;
+  /* Left-aligned, starting just past the dragon: the line reads from where he
+     is standing, and a wrapped second row lines up under the first. */
+  display: flex; align-items: center; justify-content: flex-start;
+  text-align: left;
   font-family: var(--font-title);
   /* Sized in showOst(): a long line steps down, and wraps onto a second row
      if it still will not fit. The plate is 988 wide and 120 tall. */
-  width: 896px;
+  width: 882px;
   font-size: 56px; line-height: 1.04;
   color: #fff;
   /* Stroke behind the fill, so the black sits outside the letters */
   -webkit-text-stroke: var(--stroke-title) #000;
   paint-order: stroke fill;
   white-space: normal;   /* long lines wrap rather than run off the plate */
+}
+
+/* A new line sweeps in from the left instead of appearing all at once. The
+   whole line is already in the DOM and only the reveal moves, so it cannot
+   drift out of step with the voice the way typing it character by character
+   did. The negative insets keep the letters' black stroke from being clipped. */
+.panel__typed { display: inline-block; }
+
+.panel__text--wipe .panel__typed {
+  animation: ost-wipe 460ms cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+
+@keyframes ost-wipe {
+  from { clip-path: inset(-30% 100% -30% -6%); opacity: 0.3; }
+  to   { clip-path: inset(-30% -6% -30% -6%);  opacity: 1; }
 }
 
 /* Typewriter caret — blinks while typing, removed when the line is done */
@@ -565,19 +623,21 @@ html, body {
 /* ------------------------------------------------------------
    Answer panel (190:516) + the typed value (190:525)
 
-   The wrapper owns the position, so the plate, the number and the tap
-   target lift together. It waits centred in the jar (--answer-lift) and
-   returns to the design coordinate when the pad opens. The jar box is
-   184 -> 1079, so its centre is y 631; a 156-tall panel centred there
-   starts 196 px below its design top of 358.
+   The wrapper owns the position, so the plate, the number and the tap target
+   move together. It stays at the design's coordinate throughout: the plate sits
+   in the jar's neck, which is where the design's own jar art carries its label,
+   and dropping it to the middle of the jar while waiting for a tap read as the
+   label coming loose. The breathe and the wiggle are what mark it tappable.
    ------------------------------------------------------------ */
 .answer {
-  position: absolute; left: 1274px; top: 368px;
+  position: absolute; left: 1344px; top: 368px;
   width: 391px; height: 146px;
   transform: translateY(var(--answer-lift, 0px));
   transition: transform 520ms cubic-bezier(0.3, 1.18, 0.4, 1);
 }
-.answer--waiting { --answer-lift: 169px; }   /* centred in the smaller jar */
+/* The class still marks the waiting state for the wiggle and the tap target;
+   the plate itself does not move. */
+.answer--waiting { --answer-lift: 0px; }
 
 /* Inactivity: "jar will wiggle or shake" — the panel the child has to tap
    is what wiggles, since that is the thing being pointed at. */
@@ -598,13 +658,20 @@ html, body {
   width: 128.4%; height: 372.73%;
 }
 
-/* Waiting for a tap: the panel breathes very slightly. Nothing is drawn on
-   top of it — no glow, no ring — the plate itself just scales a touch. */
-.display--hint { animation: panel-breathe 1900ms ease-in-out infinite; }
+/* Waiting for a tap: the plate pops, then settles, then pops again. Nothing is
+   drawn on top of it — no glow, no ring — the plate itself does the asking.
+   A single slow swell at 1.5% was too quiet to read as "tap me"; this is a
+   beat with a small lift on it, still gentle enough not to nag. */
+.display--hint {
+  animation: panel-breathe 1500ms cubic-bezier(0.34, 1.56, 0.5, 1) infinite;
+  transform-origin: 50% 60%;
+}
 
 @keyframes panel-breathe {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.015); }
+  0%, 100% { transform: scale(1)     translateY(0); }
+  30%      { transform: scale(1.055) translateY(-5px); }
+  55%      { transform: scale(1.012) translateY(-1px); }
+  75%      { transform: scale(1.03)  translateY(-3px); }
 }
 
 /* The design places a single "6" at 1419/380; the live value is centred
@@ -634,7 +701,7 @@ html, body {
    Keypad plates (190:518) — a crop of the same sprite sheet
    ------------------------------------------------------------ */
 .keypad {
-  position: absolute; left: 1200px; top: 523px;
+  position: absolute; left: 1260px; top: 523px;
   width: 503px; height: 395px;
 }
 .keypad > img {
@@ -646,7 +713,7 @@ html, body {
    digits open as one piece. Key rects are therefore relative to the
    keypad's origin (see KEYPAD_ORIGIN in script.js). */
 .keys {
-  position: absolute; left: 1200px; top: 523px;
+  position: absolute; left: 1260px; top: 523px;
   width: 503px; height: 395px;
 }
 
@@ -659,7 +726,7 @@ html, body {
   position: absolute;
   /* 36.7% of 80 = 29.4 across; the fingertip is on row 0, nudged 3 px onto
      the target so it reads as touching it */
-  left: calc(var(--hand-x, 1460px) - 29px);
+  left: calc(var(--hand-x, 1520px) - 29px);
   top: calc(var(--hand-y, 700px) - 3px);
   width: 80px; height: 114px;
   z-index: 6;                     /* above the pad, the panel and the jar */
@@ -842,11 +909,12 @@ html, body {
   .treat--in { animation: none; }
   .treat--fly { animation-duration: 1ms; }
   .jar-lid--on { animation-duration: 1ms; }
-  .treat--idle .treat__body,   .keypad--opening, .keys--opening { animation: none; }
+  .stage--sleepy .treat--idle .treat__body,
+  .keypad--opening, .keys--opening { animation: none; }
   .treat--giggle .treat__body > img, .treat--wiggle .treat__body > img,
   .sparkles--on .sparkle, .pack--in, .pack--glow { animation: none; }
   .pack--waiting { opacity: 1; }
-  .treat--idle .treat__lid, .pack__cell.treat--glow,
+  .stage--sleepy .treat--idle .treat__lid, .pack__cell.treat--glow,
   .treat--glow .treat__body > img,
   .hand--tap .hand__art, .hand--tap .hand__ripple,
   .hand--point .hand__art { animation: none; }
@@ -855,5 +923,5 @@ html, body {
   /* No camera travel: cut straight to the next stage. */
   .world, .world--out, .world--in { transition: none; }
   .answer { transition: none; }
-  .panel__caret { animation: none; }
+  .panel__caret, .panel__text--wipe .panel__typed { animation: none; }
 }

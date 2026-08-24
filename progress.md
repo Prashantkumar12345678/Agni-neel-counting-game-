@@ -70,6 +70,24 @@ fruit is only 73-95% of it, and the fraction differs per asset. Sizes are now
 set so the **visible** treat is about 205 px across on every stage — which is
 what the design's apple measures.
 
+### Inside the jar: the design's own arrangement
+
+The design has a **packed frame for each stage** — the treats inside the jar are
+placed there by hand, so it is not something to compute. The tutorial's
+(`267:186`) is now used verbatim: `JAR_LAYOUT` holds each apple's centre, the
+side of the square it is drawn in (220-316 px — they vary) and its tilt. Where a
+stage has an entry, the flight lands on it; otherwise the computed heap is used.
+
+**Reading rotated nodes out of Figma.** `get_metadata` reports a rotated node's
+x/y *before* its transform, so those coordinates are not where the thing appears
+— chasing them put the treats 120-190 px out. The generated CSS is the way in:
+its `inset` box is the post-transform bounding box, and the rotated square is
+centred in it, so the inset centre is the real centre. Checked against the
+design's render: within 2 px.
+
+Frames still to lift, when their arrangements are wanted: `11` (candies), `9`
+(jellies), `13` (strawberries), `17` (marshmallows), `19` (walnuts).
+
 ### The art, per object
 
 Each stage has its own treat, from the `ART` table in [script.js](script.js):
@@ -362,17 +380,39 @@ headless Chrome's `--virtual-time-budget`, which is how this was caught.
 
 ### Assets
 
-| File | Figma node | Notes |
+| File | Where it comes from | Notes |
 | --- | --- | --- |
-| `background.png` | `190:498` | Wooden table, 3838 × 2160 |
-| `blue barries.svg` | `190:547` | One treat, **shadow baked in** — 215 × 208, berry in the top-left 157 × 156 |
-| `agni fly gif.gif` | `190:513` | 594 × 466, 36 frames @ 60 ms; dragon occupies 423 × 427 of the canvas |
-| `Jar.png` | `190:506` | Glass jar — **differs from the jar currently in the Figma frame** |
-| `answer-panel.png` | `190:516` | **Sprite sheet** — the answer plate is a crop of it |
-| `keypad.png` | `190:518` | **Sprite sheet** — the 3 × 4 plate grid is a crop of it |
-| `green-button.png` | `190:533` | Submit plate |
-| `tick.svg` | `190:534` | Tick vector |
-| `Intrustiction panel.svg` | `190:507` | The standing Agni, clipped from its left 161 × 161 |
+| `background.png` | design | Wooden table, 3838 × 2160 — byte-identical to the frame's own fill |
+| `Jar.png` | design | Glass jar, 697 × 895 — byte-identical to the frame's |
+| `apple.png` `candy.png` `jelly.png` `strawberry.png` `marshmallow.png` `berry.png` `walnut.png` | design | One treat each. **All seven are 1254 × 1254**, drawing centred on transparency |
+| `packet-jelly.png` | design, cropped | The design shows this bag through a crop box; the file is cropped to match (1936 × 1017) |
+| `packet-strawberry.png` | design | The punnet, 1402 × 1122 — a single composite in the design too |
+| `packet-walnut.png` `packet-berry.png` | design, composited | Built from the shared `Transparent packet` bag plus the design's own 5 × 2 treat-grid image, at the design's proportions |
+| `packet-marshmallow.png` | authored | Same bag, with a 5 × 2 grid laid out from `marshmallow.png` — the marshmallow frame's grid image was never reachable (see below) |
+| `Jar cap.png` | supplied | The lid that drops on at the end; not in the design |
+| `agni fly gif.gif` | supplied | 594 × 466, 36 frames @ 60 ms; dragon occupies 423 × 427 of the canvas |
+| `answer-panel.png` | design | **Sprite sheet** — the answer plate is a crop of it |
+| `keypad.png` | design | **Sprite sheet** — the 3 × 4 plate grid is a crop of it |
+| `green-button.png` | design | Submit plate |
+| `tick.svg` | design | Tick vector |
+| `Intrustiction panel.svg` | design | The standing Agni, clipped from its left 161 × 161 |
+| `hand.webp` | supplied | The nudging hand |
+| `sfx/` | freesound (CC0) | 15 clips + `LICENSE.txt` |
+
+Every treat asset is the same 1254 × 1254 square, which is what makes a design
+measurement usable directly: the size Figma reports for a treat inside the jar
+*is* the size to draw that square at. `ART[k].ink` records how much of the square
+the drawing actually covers (a walnut 58 % across, an apple 73 %), and `inkH` the
+same vertically. Spacing on the table goes by those, never by the square — by the
+square alone the walnuts drift apart, and by the width alone the tall ones stack
+into each other.
+
+The SVGs the design was previously read from (`Apple.svg`, `yellow jelly.svg`,
+`orange candy.svg`, `stoberries.svg`, `marsmalo.svg`, `walnuts.svg`,
+`blue barries.svg`) are each a wrapper around one of these same 1254 × 1254
+rasters — checked byte for byte on the apple and the jelly. `marshmallow.png` and
+`berry.png` were extracted from theirs, since those two frames were not
+reachable.
 
 `Intrustiction panel.svg` is the whole 1079 × 161 panel with the mirrored dragon
 already drawn into its left 161 × 161, so the plate and the dragon can't move
@@ -426,21 +466,142 @@ exact green-button rect. Digit glyphs keep the design's hand-placed coordinates
 rather than being re-centred, so the slightly uneven spacing of the original is
 preserved. Pressing a key shows a soft rounded highlight.
 
-**Treats.** `blue barries.svg` is 215 × 208 because the drop shadow is baked in
-as an SVG filter; the berry itself fills the top-left 157 × 156, which is its
-design box. Positioning the 215 × 208 box at the design coordinate therefore
-leaves the berry exactly where Figma has it, and no CSS shadow is needed.
+**Treats.** All seven are the design's own 1254 × 1254 PNGs, drawing centred on
+transparency, so one convention covers everything: the element is that square
+scaled to `size`, positioned by its centre, and `ink`/`inkH` say how much of it
+the drawing fills.
 
-**Blink.** The artwork has no closed-eye frame, so each eye gets a lid element
-in the body's blue (`rgb(40, 111, 224)`, sampled from the art) with a dark lash
-line, rolling down from the top on `scaleY`. The eye boxes were measured off a
-3× render of the SVG: whites are 21 × 22.7 at y 80, x 42.7 and x 97.3 within the
-berry's 157 × 156 box. Closed, it reads as a happy squint — the eyebrows stay
-visible above the lid.
+**Blink.** The artwork has no closed-eye frame, so each eye gets a lid that
+paints **a patch of the treat's own skin** over it, plus a lash line, rolling
+down from the top on `scaleY`. `eyes.dx`/`dy` say where that patch comes from, in
+eye-widths and eye-heights. The eye boxes were found by locating the two pupils
+by darkness and growing each into its eye white, refusing growth that runs away
+— the marshmallow's body is white and touches its eyes, so unchecked growth
+swallows the whole face.
+
+The copy direction cannot be measured on flatness alone. Scoring picked *above*
+for the apple and the strawberry, where flat green leaf beats seeded red fruit —
+and both then blinked green. Both take their skin from below instead. The
+strawberry is the one treat with no clean patch anywhere: leaves above, and the
+fruit narrows to a point too soon below to fill a lid the size of its eye. It
+names its skin colour instead (`eyes.fill`), and the lid paints that. A seeded
+version of the fill was tried and dropped — a regular dot grid reads worse than
+plain shading at the size a blink is actually seen.
+
+**The instruction copy is centred** across the plate rather than left-aligned
+against the dragon, which is how the design sets it — a short line looked
+stranded otherwise. Long lines still step down in size and wrap onto a second
+row, and the pair stays centred as a block.
 
 **Text strokes.** Every text layer in the design is outlined, and Figma's
 generated code drops that entirely — the widths were measured off the design
 render and live in the `--stroke-*` tokens:
+
+**Inside the jar.** Every stage's filled jar is laid out by hand in the design,
+so `JAR_LAYOUT` in [script.js](script.js) carries the design's own slots rather
+than computing a heap: centre, tilt, and the size the art is drawn at, for each
+pack and each loose treat.
+
+Reading them out needed one thing understood first. Figma reports a rotated node
+as a **post**-rotation bounding box plus a rotation, with the artwork rotated
+inside it — so the box centre is the visual centre, and the art's own side comes
+back from the box, because a square of side *s* tilted by *t* has a box of
+`s·(|cos t| + |sin t|)`. Every candy in frame 2 came back at 259.0 px from
+fourteen different boxes, which is the check that the derivation is right. The
+node's own reported x/y is *not* the box: it is the transformed corner, which is
+why the earlier attempt to read positions from the node boxes was wrong.
+
+The design fills each jar right up for the picture, so most frames hold more
+treats than the stage counts — 32 jellies where the answer is 15, 23
+strawberries where it is 27 (two packets and seven loose). The count has to stay
+honest, so the engine takes the **lowest** slots first and leaves the rest: the
+pile keeps the design's sizes, tilts and placement at the number of things the
+child is actually being asked to count.
+
+| Stage | Answer | Design frame | Slots it offers | Used |
+| --- | --- | --- | --- | --- |
+| Tutorial | 6 | `267:186` | 7 apples | 6 |
+| Level 1 | 9 | `269:189` "2" | 14 candies | 9 |
+| Transition 1 | 15 | `269:53` "3" | 1 packet + 32 jellies | 1 + 5 |
+| Transition 2 | 27 | `272:339` "4" | 2 punnets + 23 strawberries | 2 + 7 |
+| Level 2 | 42 | — | authored: 4 packets + 2 loose | 4 + 2 |
+| Level 3 | 50 | `272:536` "6" | 5 packets | 5 |
+| Level 4 | 79 | `272:678` "7" | 7 packets + 15 walnuts | 7 + 9 |
+
+The x figures above are the design's own, plus the 60 px the whole jar column
+moved (below).
+
+Level 2 is the one gap. The marshmallow screen exists — its two frames sit at
+canvas x ≈ 20073 and 22033, between strawberry ("4", x 18113) and blueberry
+("6", x 24014) — but its node id could not be found. `get_metadata` on the page
+returns a **stale** tree that predates these frames (it still lists the old
+27-screen design and the loose `271:*` nodes but none of the `272:*` frames),
+while per-node lookups resolve fine, and the ids are not allocated in any order
+that could be walked: the blueberry table frame is `272:409` with children
+`272:410-414` *and* `272:517-535`, and probes across `272:378-535` come back
+empty. So Level 2's four packets and two loose treats are authored in the same
+idiom — the same bag art as Level 3, nearly level, stacked in two tiers.
+
+**The jar sits 60 px right of where the packed frames put it.** The design
+disagrees with itself: the screen with the keypad open (`267:137`) has the jar at
+x 1204, the pad at 1260, the plate at 1344 and every digit 60 px right of where
+the six packed frames put them, which all have the jar at 1144. The build follows
+the keypad frame — it is the screen the child actually plays on — so the jar, the
+cap, the sparkles, the pad, the digits, the submit key, the flight geometry and
+every in-jar slot carry that +60. The plate goes to the design's 1344, which is
++70: it had been read 10 px left of where the keypad frame has it. The plate then
+lands in the jar's neck, exactly as the design's own jar render shows it.
+
+**Packets are built so nothing stretches at run time.** Figma fills each packet
+layer with its own non-uniform scale, so the same bag file appears at a different
+aspect in different frames — and because the bag and the treats are separate
+layers there, it can stretch one without the other. A packet flies as a single
+element here, so that has to be baked in: each composite is the bag resized to
+the shape the design draws it in, with the treat grid fitted inside it
+*uniformly*, so the treats keep their own proportions. Each file's aspect then
+equals the shape it is drawn in, and the `<img>` filling its box changes nothing.
+
+Two things had to be got right, and each announced itself on screen:
+
+- **The grey line.** The bag files carry a dark outline *outside* the white bag:
+  rows above the white edge measure a flat (123,123,123), the zigzag itself 186+.
+  Figma crops it away. Kept, it reads as a stray line above the pack.
+- **The crop must stop there.** Reading that crop as cutting into the bag, and
+  "fixing" it by using the whole file, put the outline back and stretched the
+  treats 27 % wide.
+
+**On the table.** These arrangements come from the design directly:
+
+- Level 3's five packets are the file's own coordinates (`272:409`).
+- Transition 2, Level 2 and Level 4 were measured off the design's renders,
+  since those frames' node ids are not reachable — good to a few pixels rather
+  than exact. `YARD_LAYOUT` holds all four.
+
+And two more:
+
+- The tutorial's six apples are its own group (`285:16`): a tidy 3 × 2, upright,
+  all at 280.7, read left to right and top to bottom — which is the order they
+  are counted in.
+- One packet plus a few loose treats (Transition 1) is drawn differently from
+  the rest: the single packet goes across the top of the yard, 679 wide, and the
+  loose treats sit in **one row underneath it**, lined up with the packet's own
+  columns and drawn about the size of the ten inside it. `oneGroupYard()` does
+  exactly that, taking the row's spacing and size from the packet's grid so the
+  same object is the same size inside the pack and outside it.
+
+Whatever `YARD_LAYOUT` does not cover falls through to `layoutStage()`, which
+follows the design's shape without matching it: a block of packs with the loose
+treats beside them. Two nudges brought it closer — the pack block prefers a
+squarer shape when that costs less than a sixth of the pack size (four packets as
+2 × 2, not a column of four), and the loose block prefers a squarish grid (nine
+candies as 3 × 3, as the design draws them).
+
+**A line marked (VO) is spoken and nothing else.** The script's VO column doubles
+as the on-screen text, except where a line carries a `(VO)` marker — the
+tutorial's count, Level 1's instruction, "Look! These treats are in a group.",
+"It is your turn to pack now!". Those steps set `voOnly`, and `say()` skips the
+plate for them. Counting was already silent on the plate: the numbers are spoken
+and the treats pop, so writing them up would only repeat the screen.
 
 ### Layer opacities
 
@@ -490,6 +651,29 @@ build starts empty):
 - Stage fits exactly (1.778 aspect, no cropping) at 1366×768, 1600×900,
   1280×1024 and 2560×1440.
 
+### Two ways the pad could go dead
+
+Both found by playing every stage through in a real browser rather than by
+reading the code, and both would have looked like the game ignoring the child.
+
+1. **The last stage's restriction leaked into the next one.** A guided stage ends
+   with only the answer's digit clickable — the tutorial ends on `['6']` — and
+   starting the next stage did not clear that, so Level 1 opened with 6 as the
+   only live key and nothing else responded. `shutKeypad()` now empties the
+   allow-list: a shut pad responds to nothing, which is both true and what stops
+   the leak.
+2. **The pad went live a beat before any key would answer.** Opening the pad and
+   saying which keys may respond are two different callers on two different
+   timers — the pad became visible and unlocked ~220 ms before the allow-list was
+   set. `unlockKeypad()` now refuses to unlock onto an empty allow-list, so the
+   pad goes live exactly when a key can actually answer.
+
+Every stage was then played through in a real browser — plate tapped, answer
+typed, tick pressed — and all seven land the treats and seal the jar with no
+console errors: 6, 9, 15, 27, 42, 50, 79. A wrong answer followed by the right
+one was checked separately on Level 1 and Level 2: the pad comes back with the
+whole keypad live and the second try wins.
+
 Corrections the diff turned up:
 
 1. Itim's web line box sits **2 px** above Figma's text box → keypad glyphs carry
@@ -519,13 +703,236 @@ Corrections the diff turned up:
 
 ## 🔜 Not built yet
 
-- **Screens 2+** of section `190:494` — only frame `190:495` is implemented.
-  `roundcomplete` fires on the stage when the answer is right; wire the next
-  screen to it.
-- **Grouped treats.** The copy says *"Count all the **groups** and loose treats"*,
-  but frame 1 only contains 6 loose berries. Grouped/boxed treats presumably
-  arrive in a later frame — `TREATS` in [script.js](script.js) is a flat list and
-  will need a group concept then.
-- **Audio** — no sounds in the design.
+- **Recorded VO.** Agni is the browser's own speech synthesis, filtered to the
+  highest-pitched non-male voice available. It is still an adult voice on most
+  machines — the one thing that cannot be fixed in code. Every line is already
+  dispatched as a `vo` event, so recorded audio can be dropped in without
+  touching the flow.
+- **Four arrangements are measured off renders, not lifted from the file**:
+  Level 2's jar, and the Transition 2 / Level 2 / Level 4 yards. Their frames'
+  node ids are not reachable (see above), so those are good to a few pixels
+  rather than exact. Pasting the node ids in would let them be measured like the
+  rest. Level 1's and the tutorial's yards, Transition 1's single-packet yard and
+  Level 3's five packets all come from the file.
+- **The strawberry punnet keeps its own aspect** rather than the flatter shape
+  the design stretches it to. It is a single composite asset, so tray and fruit
+  cannot be scaled apart; keeping it uniform keeps the strawberries in
+  proportion, and the tray reads slightly deeper than the design's.
+- **Feedback on a disabled key.** During a guided stage only the expected digit
+  responds; tapping any other does nothing at all rather than saying so.
+- **Skip, replay and progress controls**, and the story screens either side of
+  the play section.
 - **Fonts** load from Google Fonts (Itim, Londrina Solid). Self-host them if the
   game has to run offline.
+
+## Stillness while playing, blinking when idle
+
+The treats used to breathe and blink from the moment they landed. That reads as
+decoration competing with the lesson, so both animations now wait for the stage
+to doze: `.stage--sleepy` gates them, and it is only set after ten seconds with
+nothing happening. Any pointer, key, touch or wheel event clears it instantly,
+and so does a line of on-screen text — a stage that is mid-sentence is not
+idle, which is why `showOst()` pokes the same timer.
+
+The per-treat animation delays are now wrapped (`i % 7`, `i % 5`). They only
+exist to keep neighbours out of step, and unwrapped they reached forty seconds
+on a pack of ten — fine when the animation ran from page load, useless when it
+has to start the moment the screen goes quiet.
+
+Checked in the browser: nothing animates 1.5s or 7.5s after a tap, both
+animations are running at 11.5s, and the next tap stops them again.
+
+Level 4's on-screen text follows the script's two lines — "Count all the
+treats." while counting, "Write the number on the jar." once it is time to
+answer — using the same `ost:` step key Transition 2 already used for its
+mid-stage line.
+
+## The child opens the pad, even in the tutorial
+
+The tutorial used to have the hand tap the answer plate itself and the keypad
+would spring open unasked. Watching a hand do it teaches nothing about doing
+it, so `nudgeToPanel()` now points at the plate and hands over to
+`awaitChildTap()` — the same wait the unguided levels use. The pad stays shut,
+the keys stay dead and the plate keeps breathing until the child taps it;
+after that the guided walk resumes exactly as before, with only the answer's
+next digit live.
+
+`awaitChildTap()` takes an optional continuation for this: with one, the tap
+opens the pad and the stage carries on with the hand walking the digits;
+without one, the whole pad simply comes live for the child's own turn. That
+made `handTap()` — the hand tapping on the child's behalf — dead, so it is
+gone.
+
+Two nudges pointed at the answer plate with hand-copied coordinates, and the
+inactivity one still held the pre-redesign numbers, so after ten idle seconds
+the hand appeared 190px below the plate. Both now read `ANSWER_CENTRE`.
+
+Checked: the pad reads `keypad--closed` with `state.allowed` empty both
+immediately and 2.5s later, opens only on the tap, and the tutorial still walks
+to 6 and seals.
+
+The plate that has to be tapped now pops rather than swells: a beat with a
+small lift, 1500ms, easing that overshoots slightly. One slow 1.5% swell was
+too quiet to read as an invitation. It scales about 50%/60% so the lift reads
+as the plate coming toward you, and the animation is dropped the moment the
+pad opens, so it never runs while a number is being typed.
+
+## The instruction copy sat low, and now arrives from the left
+
+`.panel__text` carried two `height` declarations — a 66px one beside the
+original `top: 85px`, and a later 120px one. The second won, so the box became
+the plate's full height but still started 23px below the plate, and every line
+rendered low. The box is now the plate's own 120px at `top: 62px`, which puts
+the copy's middle on the plate's middle exactly (measured: 122.0 against
+122.0). Horizontally it is left-aligned, starting at 232 — just past the dragon, with
+a little air between his hand and the first letter. Centred was tried first and
+rejected: a short line drifted into the middle of a wide plate and read as a
+label rather than something being said. `OST_SIZE.width` tracks the same box,
+so a long line still stops short of the plate's right edge.
+
+A new line also sweeps in from the left now — a 460ms `clip-path` wipe on the
+text span. The whole line is in the DOM before the wipe starts, so unlike
+typing it character by character this cannot drift out of step with the voice.
+The insets are negative on the other three sides so the letters' black stroke
+is not clipped.
+
+Counting is exempt: "1," grows into "1, 2," and re-sweeping the whole run on
+every number would make the numbers already up there flicker, so `showOst()`
+only wipes when the new line is not an extension of the one on screen.
+
+## The loose walnuts grew into each other
+
+Nine loose walnuts sat in two staggered columns on a hand-set 108px pitch at a
+167px square. A walnut draws taller inside its square than any other treat
+(`inkH` 0.774), so it stood 129px tall on that pitch and each one overlapped
+the one below by 21px.
+
+The columns are now generated rather than typed: the pitch is the drawn height
+plus an 11px gap, so the two can no longer disagree. The square came down to
+134px, which is what makes them fit — the drawn walnut is 77 x 104, the pitch
+114.7, and the column runs 448 to 1011, clear of the pack above it and of the
+bottom of the yard. They are still drawn a little larger than the walnuts
+inside a pack, which is what tells a child the loose ones are the loose ones.
+
+Verified across all seven stages by measuring every loose treat's drawn
+rectangle and testing every pair: no overlaps anywhere, and on Level 4 no loose
+walnut touches a pack either.
+
+Two bugs this turned up, both mine:
+
+- `walnutColumns()` is called while `YARD_LAYOUT` is being built, but its
+  constants were declared after the table. That threw during the script's own
+  evaluation, which left every `const` after it in the temporal dead zone — so
+  the visible symptom was a cascade of unrelated "cannot access X before
+  initialization" errors. The constants now precede the table.
+- `wakeUp()` had the same shape: hoisted, called from `showOst()`, but its
+  timer was a `let` three hundred lines below. It lives on `state` now, with
+  `SLEEPY_MS` up with the other timings.
+
+The measuring script was wrong too, and worth recording because the mistake is
+easy to repeat: a treat's element is `art.art` (1254) px square and scaled
+about its centre, so the drawn square is `art.art * scale`. `art.size` is only
+the default a layout starts from — multiplying by it under-reported every box
+by about 3.4x and made the overlaps disappear.
+
+## The counted treat looked sliced
+
+A pack is one flat picture, and the ten cells that let a single treat pop are
+crops of that same picture laid over it. Each crop was exactly one fifth of the
+grid wide — but the treats are drawn very nearly as wide as their share, and the
+grid rect was a few pixels tighter than the artwork besides, so every crop cut
+the sides off its own treat. At rest that is invisible: the crop lies over the
+pixels it came from. The moment a cell lifts, the flat edge shows, and it takes
+the black outline with it, which is what read as "cut".
+
+Each crop now reaches 9% past its share on every side, which takes in the whole
+treat — and, unavoidably, a sliver of its neighbours. So the cell's edges are
+feathered: two linear-gradient masks intersected, fading the outer 9% out
+again. Rectangular masks rather than one radial, which would have eaten the
+corners. At rest nothing changes, because fading a crop that lies over its own
+source only lets identical pixels through.
+
+Checked by popping all ten cells of every pack at once over dimmed artwork —
+the worst case there is, and far harsher than the one-at-a-time the game
+actually does. Jellies and walnuts come out whole. Marshmallows still show a
+faint seam where two of them genuinely touch in the art, but nothing is sliced.
+
+Blob-detecting each treat's true rectangle was tried first and abandoned: on
+colour the marshmallows fail, their lower half being white like the bag; on
+opacity the bag's outline joins every treat into one blob; eroding the mask to
+drop the bag then merges the two rows. The padded grid needs no measurement and
+cannot go stale when a packet is redrawn.
+
+## The new table looked like it had always been there
+
+A stage reached by a camera pan is built while the room is off frame, then the
+camera swings back over 760ms. The treats were popping in 260ms after the
+build — halfway through the move, so they were smeared by the travel and all
+present by the time it landed. Nothing arrived; the new table simply already
+had things on it.
+
+Holding them until the camera landed was tried first, and was wrong in the
+other direction: the camera then glided onto an empty table and the treats
+appeared on it afterwards, so the move revealed nothing and the table looked
+like it had always been that way.
+
+What it wants is the move itself doing the revealing. The table is now set
+complete while the room is off frame — jar and treats both — and the camera
+finds it, the way a camera moving across a room finds what is in it. Nothing
+pops during the move or after it. Agni still waits for the camera to land
+before he starts, so no line is spoken off frame.
+
+Traced through a stage change, 60ms a sample: the old table leaves with its six
+treats (0-576ms), the new one is complete and off frame at 643ms with all nine
+on it, and the camera carries them in over 643-1419ms.
+
+## Candies that came out green
+
+Some of the orange candies rendered green — a red/green channel swap, with
+fringing around each one, and only some of the nine. That pattern is a browser
+recolouring images, not the artwork: Chrome's auto-dark-mode and the
+forced-colours modes decide image by image whether to invert, which is exactly
+why three were hit and six were not. A plain run here renders all nine orange,
+so nothing in the CSS or the assets was doing it.
+
+The page now declares itself light — `<meta name="color-scheme" content="only
+light">` and `color-scheme: only light` on `:root` — which opts it out of
+auto-dark entirely, with `forced-color-adjust: none` on the root and on every
+piece of artwork for the forced-colours case. A child should see the design's
+colours whatever the device has been set to.
+
+The ten seconds now start when the instruction ends, not when it begins. Every
+spoken line and every counted number holds the countdown while it is in flight
+and releases it when it finishes, so a line longer than the window can no
+longer set the treats blinking mid-sentence. It is a count rather than a flag:
+counting a group queues one number at a time and they overlap.
+
+Traced with voices forced off, so the lines fall back to their read-aloud
+timings and still go through the same hold: Agni was talking in 10 of 60
+samples, none of them asleep, and the treats began breathing 10.7s after the
+last thing he said.
+
+The recolouring opt-out is not per treat — it sits on `:root` and on
+`.treat__body > img`, which is every treat, apples included.
+
+## The washed-out treats were a fade, not the browser
+
+The apples came out pale and translucent, their white highlights pink, their
+eyes lavender, and the grain of the plank showing through them. That is what a
+treat at partial opacity over the purple table looks like, and the entrance was
+fading opacity 0 to 1 over 420ms — so every treat spent four hundred
+milliseconds as a ghost of itself before it settled.
+
+The entrance now grows without fading. `treat--waiting` already holds opacity at
+0 until the moment the animation starts, so the treat appears at full strength
+and scales up from 0.4; `pack-in` the same. Checked across 40 sampled frames of
+the entrance: every treat is either fully hidden or fully opaque, never in
+between, and a frame caught mid-entrance shows solid saturated apples with the
+smallest one still growing.
+
+This is a correction to the previous note. Declaring the page light is still
+worth having — auto-dark really does recolour images one at a time — but it was
+not what made these apples look wrong, and I should not have concluded it was
+without first checking whether anything in the page was drawing them
+part-transparent.
+

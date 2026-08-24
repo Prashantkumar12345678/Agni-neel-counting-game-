@@ -11,85 +11,116 @@
 
 const DESIGN = { w: 1920, h: 1080 };
 
-/* The tutorial's six treats sit at their exact Figma coordinates. Every later
-   stage is laid out by `layoutStage()`, since the design only covers this one. */
+/* The tutorial's six treats, from the design's own group (`285:16` inside
+   frame `267:137`): a tidy 3 x 2, all upright, all the same size, read left to
+   right and top to bottom — which is the order they are counted in. `s` is the
+   1254 px canvas each is drawn at, straight from the design. */
 const TUTORIAL_TREATS = [
-  { cx: 420.5, cy: 347.5, rot: -29.6 },
-  { cx: 154.0, cy: 510.5, rot: -42.1 },
-  { cx: 773.5, cy: 564.0, rot: -6.8 },
-  { cx: 441.5, cy: 640.5, rot: 98.3 },
-  { cx: 193.5, cy: 870.0, rot: -26.4 },
-  { cx: 650.5, cy: 858.0, rot: -6.8 }
+  { cx: 192.6, cy: 426.6, s: 280.7 },
+  { cx: 515.4, cy: 423.4, s: 280.7 },
+  { cx: 838.1, cy: 420.1, s: 280.7 },
+  { cx: 192.6, cy: 736.6, s: 280.7 },
+  { cx: 515.4, cy: 733.4, s: 280.7 },
+  { cx: 838.1, cy: 730.1, s: 280.7 }
 ];
 
-/* ============================================================
-   Art
+/* The seven treats.
 
-   Every treat SVG puts its drawing in the top-left of a larger canvas — the
-   extra room is the baked drop shadow. `art` is the side of that drawing, and
-   it is what layout measures with; `canvas` is what the <img> is drawn at.
+   Every one is the design's own 1254 x 1254 PNG with the drawing centred on
+   transparency, so canvas and drawing box are a single number for all of them
+   and a size measured off a design frame drops straight in.
 
-   The packet PNGs already contain their ten treats in a 5 x 2 grid, so a
-   group of ten is one image rather than ten elements.
-   ============================================================ */
-/* Each treat's eyes, so it can blink.
+   `size` is the square the image is drawn at on the table. `ink`/`inkH` say how
+   much of that square the drawing actually covers, across and down: spacing has
+   to go by those, because by the square alone the walnuts drift apart and by
+   the width alone the tall ones stack into each other.
 
-   These faces are bitmaps — every one of these SVGs is a single <rect> filled
-   with an embedded PNG, with no vector shapes to target — so a lid cannot just
-   hide an eye element. Instead each lid paints *the same artwork*, offset, so
-   clean skin from elsewhere on the treat lands over the eye. `dx`/`dy` say
-   where that skin comes from, in eye-widths and eye-heights: usually straight
-   above or below, but the strawberry has leaves above and runs out of fruit
-   below, so it takes its cover from further up.
-
-   Boxes and offsets were measured off 3x renders of each asset (pupils found
-   by darkness, then grown into the eye white) and checked by eye, open and
-   closed, for all seven. Values are fractions of the drawing's width.
-   [x, y, w, h] */
+   `eyes` is for the blink. There is no closed-eye frame, so each lid paints a
+   patch of the treat's own skin over the eye plus a lash line; `dx`/`dy` say
+   where that patch comes from, in eye-widths and eye-heights. Boxes were found
+   by locating the pupils by darkness and growing each into its eye white,
+   refusing growth that runs away — the marshmallow's body is white and touches
+   its eyes. Values are fractions of the 1254 square: [x, y, w, h].  */
 const ART = {
-  /* The design's apple: a square PNG, so the drawing box is the canvas.
-     Drawn at 280 the fruit itself comes out 205 across, which is what
-     the design's render measures. */
-  apple:  { file: 'green apple.png', canvas: [1254, 1254], art: 1254, size: 280,
-             eyes: { dx: 0, dy: -1.25, l: [0.2489, 0.4327, 0.2136, 0.2589], r: [0.52, 0.4348, 0.2136, 0.2547] } },
-  candy:  { file: 'orange candy.svg', canvas: [214, 208], art: 156, size: 217,
-             eyes: { dx: 0, dy: 1.25, l: [0.3438, 0.4727, 0.0901, 0.1015], r: [0.5535, 0.4727, 0.0874, 0.1015] } },
-  jelly:  { file: 'yellow jelly 12.svg', canvas: [177, 163], art: 123, size: 223,
-             eyes: { dx: 0, dy: 1.25, l: [0.2848, 0.3386, 0.1378, 0.1574], r: [0.572, 0.3278, 0.1378, 0.1574] } },
-  straw:  { file: 'stoberries.svg', canvas: [214, 208], art: 156, size: 244,
-             eyes: { dx: 0, dy: -1.25, l: [0.2802, 0.4482, 0.1961, 0.251], r: [0.5176, 0.4489, 0.1934, 0.2454] } },
-  marsh:  { file: 'marsmalo.svg', canvas: [214, 208], art: 156, size: 254,
-             eyes: { dx: 0, dy: -1.25, l: [0.2502, 0.4361, 0.262, 0.2753], r: [0.5166, 0.4373, 0.2663, 0.2708] } },
-  berry:  { file: 'blue barries.svg', canvas: [215, 208], art: 157, size: 220,
-             eyes: { dx: 0, dy: -1.25, l: [0.2504, 0.4821, 0.1764, 0.2003], r: [0.5968, 0.4821, 0.1738, 0.2003] } },
-  walnut: { file: 'walnuts.svg', canvas: [214, 208], art: 156, size: 264,
-             eyes: { dx: 0, dy: 1.25, l: [0.298, 0.3989, 0.1881, 0.2172], r: [0.5352, 0.4014, 0.1881, 0.2144] } },
+  /* The apple and the strawberry both carry leaves straight above their eyes,
+     so their lids take skin from below. Scoring alone picks the leaves, because
+     flat green beats textured fruit on flatness. */
+  apple:  { file: 'apple.png',       size: 280, ink: 0.732, inkH: 0.772,
+             eyes: { dx: 0, dy: 1.25, l: [0.248, 0.4326, 0.2146, 0.26],
+                     r: [0.5199, 0.4338, 0.2146, 0.2568] } },
+  candy:  { file: 'candy.png',       size: 241, ink: 0.900, inkH: 0.513,
+             eyes: { dx: 0, dy: 1.25, l: [0.3437, 0.4723, 0.091, 0.1032],
+                     r: [0.5527, 0.4733, 0.09, 0.1021] } },
+  jelly:  { file: 'jelly.png',       size: 267, ink: 0.837, inkH: 0.856,
+             eyes: { dx: 0, dy: 1.25, l: [0.2833, 0.3381, 0.1384, 0.1579],
+                     r: [0.5709, 0.3267, 0.1404, 0.16] } },
+  /* The one treat with no clean patch anywhere: leaves above, and the fruit
+     narrows to a point too soon below to fill a lid the size of its eye. It
+     names its skin colour and the lid paints that instead. */
+  straw:  { file: 'strawberry.png',  size: 355, ink: 0.687, inkH: 0.815,
+             eyes: { dx: 0, dy: 1.25, fill: 'linear-gradient(#e01c11, #ad0a04)',
+                     l: [0.2801, 0.4478, 0.1958, 0.2526],
+                     r: [0.5172, 0.4491, 0.1928, 0.2421] } },
+  marsh:  { file: 'marshmallow.png', size: 408, ink: 0.622, inkH: 0.682,
+             eyes: { dx: 0, dy: -1.25, l: [0.2497, 0.4326, 0.2642, 0.2863],
+                     r: [0.5156, 0.433, 0.2674, 0.2846] } },
+  berry:  { file: 'berry.png',       size: 344, ink: 0.640, inkH: 0.642,
+             eyes: { dx: 0, dy: -1.25, l: [0.3179, 0.4841, 0.1266, 0.1442],
+                     r: [0.5669, 0.4841, 0.1246, 0.1442] } },
+  walnut: { file: 'walnut.png',      size: 459, ink: 0.575, inkH: 0.774,
+             eyes: { dx: 0, dy: 1.25, l: [0.2985, 0.3988, 0.1869, 0.2168],
+                     r: [0.5344, 0.3997, 0.1879, 0.2158] } },
 };
+
+/* Every treat asset is the same square, so the canvas and the drawing box are
+   one number for all of them. */
+const TREAT_CANVAS = 1254;
+Object.keys(ART).forEach((k) => {
+  ART[k].canvas = [TREAT_CANVAS, TREAT_CANVAS];
+  ART[k].art = TREAT_CANVAS;
+});
 
 /* The packets, and where their ten treats sit inside them.
 
-   `grid` is [x, y, w, h] around the 5 x 2 of treats, in the packet's own
-   pixels. It lets a single treat inside a flat packet be lit up on its own:
-   a cell is drawn as a crop of the very same image, exactly over its treat,
-   so at rest it is invisible and when it pops the treat appears to jump out
-   of the pack. Measured by finding the treats' pupils (the strawberry's seeds
-   are dark too, so that one was measured from the treats instead).
+   Each file is built so its own aspect is already the shape the design draws
+   the packet in, so nothing is stretched at run time and the treats keep their
+   proportions. Getting there took care (see fig/build_packs3.py): the bag files
+   carry a dark outline *outside* the white bag, which the design crops away and
+   which reads as a stray grey line above the pack if it is kept; and Figma can
+   stretch the bag without stretching the treats only because they are separate
+   layers there, so that stretch is baked into the file here instead.
 
-   Without this, counting inside a group — which Transition 1 needs — would
-   only work on a group drawn as ten separate treats. */
+   The redesign builds a packet from a shared translucent bag plus a 5 x 2 grid
+   image of the treat. A packet has to fly and land as one thing here, so the
+   two layers are composited into one PNG per stage at the design's own
+   proportions; only the jelly and strawberry packets came out of Figma already
+   whole.
+
+   `grid` is [x, y, w, h] around the 5 x 2 of treats, in the packet's own
+   pixels. It lets a single treat inside a flat packet be lit up on its own: a
+   cell is drawn as a crop of the very same image, exactly over its treat, so at
+   rest it is invisible and when it pops the treat appears to jump out of the
+   pack. Without this, counting inside a group — which Transition 1 needs —
+   would only work on a group drawn as ten separate treats. */
+/* How far each of a pack's ten crops reaches past its share of the grid, as a
+   fraction of the cell. Enough to take in the whole treat — they are drawn
+   almost as wide as their cell — and the stylesheet fades the same margin out
+   again so the neighbours it also takes in do not show. */
+const PACK_CELL_PAD = 0.09;
+
 const PACKETS = {
-  jelly:   { file: 'Yellow packet.png', size: [360, 238],
-            grid: [39.9, 45.3, 237.2, 90.3] },
-  straw:   { file: 'stoberries packet.png', size: [362, 295],
-            grid: [26, 62, 255, 124] },
-  marsh:   { file: 'marsmalo packet.png', size: [362, 295],
-            grid: [29.9, 79.1, 243.8, 96.4] },
-  walnut:  { file: 'walnuts packet.png', size: [362, 295],
-            grid: [30.5, 59.3, 244.5, 121.0] },
-  /* The berries touch each other, so neither pupils nor colour separated them;
-     this grid was read off a coordinate overlay of the art. */
-  berry:   { file: 'bluberries packet.png', size: [1536, 1024],
-            grid: [178, 265, 1184, 507] },
+  jelly:   { file: 'packet-jelly.png', size: [1936, 1017],
+            grid: [130, 157, 1677.2, 696] },
+  straw:   { file: 'packet-strawberry.png', size: [1402, 1122],
+            grid: [109, 321, 1177, 548] },
+  /* The design keeps this one whole, in the Assets folder rather than in a
+     frame — same bag as the blueberry packet, at 477 x 260. */
+  marsh:   { file: 'marsmalo packet.png', size: [477, 260],
+            grid: [30, 33, 417.9, 185] },
+  walnut:  { file: 'packet-walnut.png', size: [1275, 809],
+            grid: [104, 156, 1062, 500] },
+  berry:   { file: 'packet-berry.png', size: [1905, 1037],
+            grid: [167, 164, 1605, 694] },
 };
 
 /* The play area left of the jar (the jar starts at x 1113). */
@@ -147,7 +178,11 @@ const STAGES = [
     guided: false,
     ost: { main: 'Count the Treats', success: 'Jar Packed!' },
     steps: [
-      { vo: 'It is your turn to pack now! Count first and then write the magic number on the jar.' },
+      { vo: 'It is your turn to pack now!' },
+      /* "Count first and then write the magic number on the jar. (VO +
+         interaction)" — spoken over the pad, not written up. */
+      { vo: 'Count first and then write the magic number on the jar.',
+        voOnly: true },
       { awaitTap: true }
     ],
     hints: [
@@ -170,7 +205,9 @@ const STAGES = [
     guided: true,
     ost: { main: 'Let us Count a Group of 10.', success: 'Well done!' },
     steps: [
-      { vo: 'Look! These treats are in a group. Let us count them.' },
+      // "Look! These treats are in a group. (VO + pop)"
+      { vo: 'Look! These treats are in a group. Let us count them.',
+        voOnly: true },
       { countGroupItems: { group: 0, from: 1 } },
       { vo: '10 treats. This is a group of 10.', highlightGroups: true },
       { vo: 'Let us see how many treats are there in all.' },
@@ -192,7 +229,9 @@ const STAGES = [
     guided: true,
     ost: { main: 'Count Two Groups of 10', mid: 'Count Them All', success: 'Keep Going!' },
     steps: [
-      { vo: 'Look! We have 2 groups of 10 here.', highlightGroups: true },
+      // "Look! We have 2 groups of 10 here. [VO+pop]"
+      { vo: 'Look! We have 2 groups of 10 here.', highlightGroups: true,
+        voOnly: true },
       { vo: 'Let us see how many treats are there in all.', ost: 'mid' },
       { countGroupTotal: { group: 0, say: 10 } },
       { countGroupTotal: { group: 1, say: 20 } },
@@ -213,7 +252,10 @@ const STAGES = [
     guided: false,
     ost: { main: 'Count all the groups and loose treats.', success: 'Pack the Jars!' },
     steps: [
-      { vo: 'It is your turn to pack now! Count all the treats in groups and loose first and then write the magic number on the jar.' },
+      // "It is your turn to pack now! (VO)"
+      { vo: 'It is your turn to pack now!', voOnly: true },
+      { vo: 'Count all the treats in groups and loose first and then write '
+          + 'the magic number on the jar.' },
       { awaitTap: true }
     ],
     hints: [
@@ -251,10 +293,14 @@ const STAGES = [
     object: 'walnuts in packs',
     groups: 7, loose: 9, answer: 79,
     guided: false,
-    ost: { main: 'Count all the groups and loose treats.', success: 'Well done!' },
+    /* The script gives this level two on-screen lines: the task, then what to
+       do once they have the total. */
+    ost: { main: 'Count all the treats.',
+           enter: 'Write the number on the jar.',
+           success: 'Well done!' },
     steps: [
       { vo: 'Count all the treats in groups and loose first and then write the magic number on the jar.' },
-      { awaitTap: true }
+      { ost: 'enter', awaitTap: true }
     ],
     hints: [
       'Count again. Count the groups of 10 first, then count the extra treats.',
@@ -267,19 +313,29 @@ const STAGES = [
 
 const IDLE_NUDGE_MS = 10000;   // the script's inactivity window
 
+/* How long the screen has to sit untouched before the treats start breathing
+   and blinking again. Declared up here with the other timings, not beside
+   wakeUp(): wakeUp is hoisted and showOst() calls it, so a `let` next to the
+   function would be in its dead zone for anything that ran early. */
+const SLEEPY_MS = 10000;
+
+/* The answer plate's centre — 391 x 146 at (1344, 368), and it no longer
+   moves. Both the "tap here" hand and the inactivity nudge point at it. */
+const ANSWER_CENTRE = { x: 1344 + 391 / 2, y: 368 + 146 / 2 };
+
 /* Keypad hit-area grid. The plates are baked into keypad.png, so each
    key is a transparent rectangle laid over its plate. Centres are taken
    from the plate artwork; the bottom-right cell is the green submit
    button, which has its own exact rect from the design (190:533). */
-/* The pad is a clean 3 x 4 grid: 503 x 395 at (1200, 523) divides into cells
+/* The pad is a clean 3 x 4 grid: 503 x 395 at (1260, 523) divides into cells
    of 167.67 x 98.75, and the design's digits sit on exactly those centres. */
-const KEYPAD_RECT = { x: 1200, y: 523, w: 503, h: 395 };
+const KEYPAD_RECT = { x: 1260, y: 523, w: 503, h: 395 };
 const KEY_W = KEYPAD_RECT.w / 3;
 const KEY_H = KEYPAD_RECT.h / 4;
 const COL_CENTERS = [0, 1, 2].map((c) => KEYPAD_RECT.x + (c + 0.5) * KEY_W);
 const ROW_CENTERS = [0, 1, 2, 3].map((r) => KEYPAD_RECT.y + (r + 0.5) * KEY_H);
 /* The submit key keeps the design's own rect rather than the grid cell. */
-const SUBMIT_RECT = { x: 1531, y: 820.08, w: 166, h: 97.92 };
+const SUBMIT_RECT = { x: 1591, y: 820.08, w: 166, h: 97.92 };
 
 /* Key rects below are written in frame coordinates, then re-based onto the
    keypad's own box so the plates and the digits open as one piece. */
@@ -288,17 +344,17 @@ const KEYPAD_ORIGIN = { x: KEYPAD_RECT.x, y: KEYPAD_RECT.y };
 /* Keys — glyph positions are the exact text coordinates from the
    design (190:519), so the hand-placed offsets are preserved. */
 const KEYS = [
-  { type: 'digit',  value: '1', label: '1', col: 0, row: 0, gx: 1273, gy: 518 },
-  { type: 'digit',  value: '2', label: '2', col: 1, row: 0, gx: 1429, gy: 519 },
-  { type: 'digit',  value: '3', label: '3', col: 2, row: 0, gx: 1591, gy: 521 },
-  { type: 'digit',  value: '4', label: '4', col: 0, row: 1, gx: 1261, gy: 616 },
-  { type: 'digit',  value: '5', label: '5', col: 1, row: 1, gx: 1426, gy: 616 },
-  { type: 'digit',  value: '6', label: '6', col: 2, row: 1, gx: 1590, gy: 616 },
-  { type: 'digit',  value: '7', label: '7', col: 0, row: 2, gx: 1270, gy: 718 },
-  { type: 'digit',  value: '8', label: '8', col: 1, row: 2, gx: 1429, gy: 716 },
-  { type: 'digit',  value: '9', label: '9', col: 2, row: 2, gx: 1595, gy: 718 },
-  { type: 'clear',  value: 'X', label: 'X', col: 0, row: 3, gx: 1264, gy: 812, light: true },
-  { type: 'digit',  value: '0', label: '0', col: 1, row: 3, gx: 1427, gy: 816 },
+  { type: 'digit',  value: '1', label: '1', col: 0, row: 0, gx: 1333, gy: 518 },
+  { type: 'digit',  value: '2', label: '2', col: 1, row: 0, gx: 1489, gy: 519 },
+  { type: 'digit',  value: '3', label: '3', col: 2, row: 0, gx: 1651, gy: 521 },
+  { type: 'digit',  value: '4', label: '4', col: 0, row: 1, gx: 1321, gy: 616 },
+  { type: 'digit',  value: '5', label: '5', col: 1, row: 1, gx: 1486, gy: 616 },
+  { type: 'digit',  value: '6', label: '6', col: 2, row: 1, gx: 1650, gy: 616 },
+  { type: 'digit',  value: '7', label: '7', col: 0, row: 2, gx: 1330, gy: 718 },
+  { type: 'digit',  value: '8', label: '8', col: 1, row: 2, gx: 1489, gy: 716 },
+  { type: 'digit',  value: '9', label: '9', col: 2, row: 2, gx: 1655, gy: 718 },
+  { type: 'clear',  value: 'X', label: 'X', col: 0, row: 3, gx: 1324, gy: 812, light: true },
+  { type: 'digit',  value: '0', label: '0', col: 1, row: 3, gx: 1487, gy: 816 },
   { type: 'submit', value: 'ok', label: 'Check answer', col: 2, row: 3 }
 ];
 
@@ -311,8 +367,8 @@ const PAD_OPEN_AFTER_LIFT = 260;
 /* Where the treats go once the answer is right. The mouth was measured off
    Jar.png — its opening is centred on (1454, 287) and the neck is 507 px
    across — and the pile is a pyramid on the jar's floor. */
-const JAR_GATE = { x: 1469, y: 30 };     // well above the jar — they fall from height
-const JAR_MOUTH = { x: 1469, y: 288 };   // the opening itself
+const JAR_GATE = { x: 1529, y: 30 };     // well above the jar — they fall from height
+const JAR_MOUTH = { x: 1529, y: 288 };   // the opening itself
 
 /* Where they come to rest: a 3 + 2 + 1 heap on the jar's floor, every slot
    jittered so no two wins stack identically.
@@ -327,7 +383,7 @@ const JAR_MOUTH = { x: 1469, y: 288 };   // the opening itself
    The region stays narrower than the jar's floor, so there is clear glass
    either side and six treats read as being *in* a big jar, not filling it. */
 /* Middle of the jar, used when a key's rect cannot be read. */
-const JAR_CENTRE_X = 1469;
+const JAR_CENTRE_X = 1529;
 const LAND_SCALE = { min: 0.82, range: 0.08 };
 
 const TREAT_CENTRE = { x: 78.5, y: 78 };  // the berry's centre in its 215 x 208 box
@@ -439,6 +495,7 @@ const VO = {
 };
 
 const FLOW = {
+  reveal: 260,          // beat before the treats pop in
   afterPanel: 260,      // pause once the plate is open, then the on-screen text
   afterOst: 340,        // then Agni starts talking
   countStart: 620,      // beat before the counting begins
@@ -485,6 +542,8 @@ const state = {
   expect: null,      // guided digits, when the hand is walking the answer
   allowed: null,     // when set, only these keys respond
   idleTimer: null,
+  sleepyTimer: null,
+  talking: 0,
   locked: false
 };
 
@@ -501,19 +560,6 @@ function fitStage() {
 
 /* ------------------------------------------------------------
    Build the scene
-   ------------------------------------------------------------ */
-/* ------------------------------------------------------------
-   Laying out a stage
-
-   The design only covers the tutorial's six scattered treats, so those keep
-   their exact Figma coordinates. Everything else is placed here: packs of ten
-   in a row across the yard, loose treats in a block beside them. The treat
-   size falls out of how many packs must fit, so seven packs and nine loose
-   still sit inside the yard without reaching the jar.
-
-   Positions are the **centre** of the berry, not its box. `.treat` scales
-   about that centre, so a scaled treat stays put and the layout maths does
-   not have to know the scale.
    ------------------------------------------------------------ */
 /* ------------------------------------------------------------
    Laying out a stage
@@ -549,7 +595,7 @@ const GROUP_ROWS = 2;
    keeping whichever makes the groups biggest. One column of four packs
    leaves most of the yard empty and shrinks every treat with it. */
 function packGrid(g, aspect, share, gap) {
-  let best = null;
+  const tries = [];
   for (let rows = 1; rows <= PACK_ROWS_MAX; rows += 1) {
     const cols = Math.ceil(g / rows);
     let h = (YARD.h - (rows - 1) * gap.y) / rows;
@@ -559,15 +605,143 @@ function packGrid(g, aspect, share, gap) {
     if (w > maxW) { w = maxW; h = w / aspect; }
     if (w > PACK_MAX.w) { w = PACK_MAX.w; h = w / aspect; }
     if (h > PACK_MAX.h) { h = PACK_MAX.h; w = h * aspect; }
-
-    // Ties go to the taller arrangement — more vertical, as the script asks.
-    if (!best || w * h > best.w * best.h + 1) best = { rows, cols, w, h, gap };
+    tries.push({ rows, cols, w, h, gap });
   }
-  return best;
+
+  /* Biggest wins, but only clearly: within a sixth of the best area the block
+     that is squarer is the one the design draws — four packets as 2 x 2, not
+     as a single column of four — and it leaves the loose treats a sensible
+     shape of space beside it. */
+  const top = Math.max.apply(null, tries.map((t) => t.w * t.h));
+  const want = Math.ceil(Math.sqrt(g));
+  const good = tries.filter((t) => t.w * t.h >= top * 0.84);
+  good.sort((a, b) => Math.abs(a.cols - want) - Math.abs(b.cols - want)
+    || b.w * b.h - a.w * a.h);
+  return good[0];
 }
 
 function stageArt(stage) {
   return ART[stage.treat] || ART.berry;
+}
+
+/* The design's own arrangement of the yard, for the stages whose packs fill it.
+
+   Level 3 came out of the file: five packets, 477 wide, at these exact
+   coordinates (`272:409`). Transition 2, Level 2 and Level 4 were measured off
+   the design's renders instead — their frames' node ids are not reachable — so
+   those are good to a few pixels rather than exact. Each pack gives its top-left and its
+   width; the height follows the packet's own aspect. Loose treats give their
+   centre and the 1254 px canvas to draw the treat at.
+
+   Stages not listed here fall through to the general layout below. */
+/* The loose walnuts: five down the near column, four staggered between them.
+
+   Walnuts draw taller inside their square than any other treat (inkH 0.774),
+   so the pitch is worked out from how tall one actually draws rather than
+   guessed. At the old 167px square they stood 129 tall on a 108 pitch and grew
+   into each other — which is why the drawn square here is smaller than the
+   figure the rest of the game uses for a walnut. The columns are 120 apart and
+   a walnut is only 77 wide, so across is already clear. */
+const WALNUT_COL = { x: [860, 980], top: 500, rows: 5, s: 134, gap: 11 };
+
+function walnutColumns() {
+  const c = WALNUT_COL;
+  const pitch = c.s * ART.walnut.inkH + c.gap;
+  const out = [];
+  for (let r = 0; r < c.rows; r += 1) {
+    out.push({ cx: c.x[0], cy: c.top + r * pitch, s: c.s });
+    // The staggered column has one fewer, sitting between its neighbours.
+    if (r < c.rows - 1) {
+      out.push({ cx: c.x[1], cy: c.top + (r + 0.5) * pitch, s: c.s });
+    }
+  }
+  return out;
+}
+
+const YARD_LAYOUT = {
+  level2: {
+    packs: [
+      { x: 68, y: 212, w: 467 }, { x: 585, y: 212, w: 467 },
+      { x: 68, y: 493, w: 467 }, { x: 68, y: 772, w: 467 }
+    ],
+    loose: [{ cx: 635, cy: 571, s: 145 }, { cx: 635, cy: 686, s: 145 }]
+  },
+  transition2: {
+    packs: [{ x: 90, y: 236, w: 524 }, { x: 90, y: 600, w: 524 }],
+    // A zigzag of two columns, the way the design stacks them.
+    loose: [
+      { cx: 756, cy: 344, s: 140 }, { cx: 756, cy: 472, s: 140 },
+      { cx: 924, cy: 472, s: 140 }, { cx: 756, cy: 612, s: 140 },
+      { cx: 756, cy: 736, s: 140 }, { cx: 924, cy: 736, s: 140 },
+      { cx: 756, cy: 864, s: 140 }
+    ]
+  },
+  level3: {
+    packs: [
+      { x: 52, y: 223, w: 477 }, { x: 582, y: 223, w: 477 },
+      { x: 31, y: 500, w: 477 }, { x: 555, y: 511, w: 477 },
+      { x: 290, y: 793, w: 477 }
+    ],
+    loose: []
+  },
+  level4: {
+    packs: [
+      { x: 50, y: 236, w: 330 }, { x: 420, y: 236, w: 330 },
+      { x: 800, y: 236, w: 330 },
+      { x: 50, y: 510, w: 330 }, { x: 420, y: 510, w: 330 },
+      { x: 50, y: 760, w: 330 }, { x: 420, y: 760, w: 330 }
+    ],
+    /* Two columns filling the space the third column of packs leaves. They
+       start below that third packet rather than beside it — begun level with
+       it, the top of the column ran into the pack. */
+    loose: walnutColumns()
+  }
+};
+
+/* Lays a stage out from YARD_LAYOUT, when the design has one for it. */
+function designYard(stage, art) {
+  const laid = YARD_LAYOUT[stage.id];
+  if (!laid || laid.packs.length < stage.groups
+      || laid.loose.length < stage.loose) return null;
+  const packet = stage.packet ? PACKETS[stage.packet] : null;
+  const aspect = packet ? packet.size[0] / packet.size[1] : PACK_ASPECT;
+
+  const items = laid.packs.slice(0, stage.groups).map((slot) => ({
+    kind: 'pack', x: slot.x, y: slot.y,
+    w: slot.w, h: slot.w / aspect, packet: stage.packet || null
+  }));
+  laid.loose.slice(0, stage.loose).forEach((slot) => items.push({
+    kind: 'loose', cx: slot.cx, cy: slot.cy, scale: slot.s / art.art
+  }));
+  return items;
+}
+
+/* The design's own single-packet yard, measured off its Transition 1 frame:
+   the packet at (133, 250) drawn 679 wide, the loose treats in a row beneath
+   it. Everything else here follows from the packet: the row lines up with the
+   packet's treat columns and takes its size from them, so the child sees the
+   same object at the same size inside the pack and outside it. */
+const ONE_GROUP = { x: 133, y: 250, w: 679 };
+
+function oneGroupYard(stage, art) {
+  const items = [];
+  const packet = PACKETS[stage.packet];
+  const packW = ONE_GROUP.w;
+  const packH = packW / (packet.size[0] / packet.size[1]);
+  items.push({ kind: 'pack', x: ONE_GROUP.x, y: ONE_GROUP.y,
+               w: packW, h: packH, packet: stage.packet });
+
+  const k = packW / packet.size[0];
+  const cellW = (packet.grid[2] / 5) * k;
+  const firstCx = ONE_GROUP.x + (packet.grid[0] + packet.grid[2] / 10) * k;
+  const looseArt = (cellW * 0.9) / art.ink;         // the same treat, same size
+  const cy = ONE_GROUP.y + packH + looseArt * art.inkH * 0.79;
+
+  for (let i = 0; i < stage.loose; i += 1) {
+    items.push({ kind: 'loose', cx: firstCx + i * cellW * 1.12, cy,
+                 scale: looseArt / art.art });
+  }
+  return items;
 }
 
 function layoutStage(stage) {
@@ -575,16 +749,28 @@ function layoutStage(stage) {
   const art = stageArt(stage);
 
   if (stage.id === 'tutorial') {
-    /* The design places these six by hand — centre and tilt each — and draws
-       them at the treat's own size. */
-    const scale = art.size / art.art;
+    // The design places these six itself, so take its grid as it stands.
     TUTORIAL_TREATS.forEach((t) => items.push({
-      kind: 'loose', cx: t.cx, cy: t.cy, rot: t.rot, scale
+      kind: 'loose', cx: t.cx, cy: t.cy, scale: t.s / art.art
     }));
     return items;
   }
 
   const g = stage.groups;
+
+  /* One pack and a few loose treats is the arrangement the design draws
+     differently: the single packet goes across the top of the yard, drawn wide,
+     and the loose treats sit in one row underneath it, lined up with the
+     packet's own columns and drawn about the size of the ten inside it. With
+     two or more packs the design falls back to a block of packs with the loose
+     ones beside them, which is what the general path below does. */
+  if (g === 1 && stage.packet && stage.loose > 0 && stage.loose <= 5) {
+    return oneGroupYard(stage, art);
+  }
+
+  const laid = designYard(stage, art);
+  if (laid) return laid;
+
   let packW = 0, packH = 0, packCols = 0, packRows = 0, innerArt = 0;
   let packGap = PACK_GAP;
 
@@ -649,19 +835,32 @@ function layoutStage(stage) {
       : YARD.x;
     const room = YARD.x + YARD.w - zoneLeft;
 
-    let looseArt = art.size;
+    /* The drawing covers only part of its square, so spacing goes by the
+       drawing while the size itself stays the square the image is drawn at.
+       Spacing by the square would drift the treats apart; spacing by the
+       width alone would stack the tall ones into each other. */
+    const ink = Math.max(art.ink || 1, art.inkH || art.ink || 1);
+    /* Next to a pack, a loose treat that dwarfs the ten inside it reads
+       wrong — the design draws the two about the same size. */
+    const cap = g > 0 ? (innerArt * 2.2) / ink : Infinity;
+    let looseArt = Math.min(art.size, cap);
     let perRow = 0;
     let rows = 0;
+    /* A squarish block, the way the design lays them out — nine candies as
+       3 x 3 rather than 4 + 4 + 1, which is both what the design shows and
+       easier to count. Wider only when the room beside the packs forces it. */
+    const want = Math.ceil(Math.sqrt(stage.loose));
     for (let attempt = 0; attempt < 14; attempt += 1) {
-      const gapStep = looseArt * 1.16;
-      perRow = Math.max(1, Math.floor(room / gapStep));
+      const gapStep = looseArt * ink * 1.16;
+      const fits = Math.max(1, Math.floor(room / gapStep));
+      perRow = Math.min(fits, Math.max(1, want));
       rows = Math.ceil(stage.loose / perRow);
       if (rows * gapStep <= YARD.h && perRow * gapStep <= room) break;
       looseArt *= 0.9;                    // too tall or too wide: come down
     }
 
     const scale = looseArt / art.art;
-    const step = looseArt * 1.16;
+    const step = looseArt * ink * 1.16;
     const blockW = Math.min(perRow, stage.loose) * step;
     const left = zoneLeft + (room - blockW) / 2;
     const top = YARD.y + (YARD.h - rows * step) / 2;
@@ -692,8 +891,11 @@ function treatEl(art, scale, i) {
   el.style.setProperty('--th', art.canvas[1] + 'px');
   el.style.setProperty('--ta', art.art + 'px');
   el.style.setProperty('--treat-scale', scale);
-  el.style.setProperty('--idle-dur', (3200 + i * 170) + 'ms');
-  el.style.setProperty('--idle-delay', (i * 330) + 'ms');
+  el.style.setProperty('--idle-dur', (3200 + (i % 7) * 170) + 'ms');
+  /* Wrapped: the delay is only there to keep neighbours out of step, and an
+     unbounded one would leave the tenth treat in a pack waiting seconds
+     before it first moved. */
+  el.style.setProperty('--idle-delay', ((i % 7) * 330) + 'ms');
 
   const body = document.createElement('div');
   body.className = 'treat__body';
@@ -705,8 +907,8 @@ function treatEl(art, scale, i) {
 
   /* Two eyelids, each a patch of the treat's own skin copied over its eye. */
   if (art.eyes) {
-    el.style.setProperty('--blink-dur', (3900 + i * 260) + 'ms');
-    el.style.setProperty('--blink-delay', (i * 690) + 'ms');
+    el.style.setProperty('--blink-dur', (3900 + (i % 5) * 260) + 'ms');
+    el.style.setProperty('--blink-delay', ((i % 5) * 620) + 'ms');
     ['l', 'r'].forEach((side) => {
       const box = art.eyes[side];
       const ex = box[0] * art.art;
@@ -717,12 +919,21 @@ function treatEl(art, scale, i) {
       const sy = -eh * art.eyes.dy;
       const lid = document.createElement('span');
       lid.className = 'treat__lid';
+      /* Copying skin only works where there is a clean patch of it to copy.
+         The strawberry has leaves right above its eyes and runs out of fruit
+         below, so it names its skin colour instead and the lid paints that. */
+      const skin = art.eyes.fill
+        // Rounded and shaded, or the flat patch reads as a pasted rectangle.
+        ? 'background-image:' + art.eyes.fill + ';border-radius:44% / 38%;' +
+          (art.eyes.fillSize
+            ? 'background-size:' + art.eyes.fillSize + ';background-repeat:repeat;'
+            : '')
+        : 'background-image:url("Assets/' + art.file + '");' +
+          'background-size:' + art.canvas[0] + 'px ' + art.canvas[1] + 'px;' +
+          'background-position:' + -(ex - sx) + 'px ' + -(ey - sy) + 'px';
       lid.style.cssText =
         'left:' + ex + 'px;top:' + ey + 'px;width:' + ew + 'px;height:' + eh + 'px;' +
-        'border-bottom-width:' + Math.max(2, eh * 0.13).toFixed(1) + 'px;' +
-        'background-image:url("Assets/' + art.file + '");' +
-        'background-size:' + art.canvas[0] + 'px ' + art.canvas[1] + 'px;' +
-        'background-position:' + -(ex - sx) + 'px ' + -(ey - sy) + 'px';
+        'border-bottom-width:' + Math.max(2, eh * 0.13).toFixed(1) + 'px;' + skin;
       body.appendChild(lid);
     });
   }
@@ -772,20 +983,30 @@ function renderStage(stage) {
       pack.appendChild(img);
 
       /* Ten cells, each a crop of this same packet over one of its treats.
-         Invisible at rest; pops when its number is counted. */
+         Invisible at rest — the crop sits exactly over the artwork it was cut
+         from — and pops when its number is counted.
+
+         Each crop is grown past its share of the grid by PACK_CELL_PAD. A
+         treat is drawn very nearly as wide as its cell, so a crop of exactly
+         one fifth sliced the sides off every one of them, and the flat edge
+         was plain the moment the cell lifted. The overspill takes in a sliver
+         of the neighbours, which is what the feathered edge in the stylesheet
+         is for. */
       const k = item.w / packet.size[0];
       const [gx, gy, gw, gh] = packet.grid;
       const cw = (gw / 5) * k;
       const chh = (gh / 2) * k;
+      const padX = cw * PACK_CELL_PAD;
+      const padY = chh * PACK_CELL_PAD;
       item.members = [];
       for (let n = 0; n < 10; n += 1) {
-        const cx = (gx + (n % 5) * (gw / 5)) * k;
-        const cy = (gy + Math.floor(n / 5) * (gh / 2)) * k;
+        const cx = (gx + (n % 5) * (gw / 5)) * k - padX;
+        const cy = (gy + Math.floor(n / 5) * (gh / 2)) * k - padY;
         const cell = document.createElement('span');
         cell.className = 'pack__cell';
         cell.style.cssText =
           'left:' + cx + 'px;top:' + cy + 'px;' +
-          'width:' + cw + 'px;height:' + chh + 'px;' +
+          'width:' + (cw + padX * 2) + 'px;height:' + (chh + padY * 2) + 'px;' +
           'background-image:url("Assets/' + packet.file + '");' +
           'background-size:' + (packet.size[0] * k) + 'px ' + (packet.size[1] * k) + 'px;' +
           'background-position:' + -cx + 'px ' + -cy + 'px';
@@ -825,9 +1046,30 @@ function packItems() {
   return state.items.filter((it) => it.kind === 'pack');
 }
 
-/* Staggered pop-in across the yard. */
-function revealTreats() {
+/* Staggered pop-in across the yard.
+
+   `instant` skips it. A stage the camera pans to is built while the room is
+   off frame, and the treats are put on the table there — so the camera glides
+   onto a table that already has its jar and its treats on it, the way a camera
+   moving across a room finds what is in it. Popping them in during the move
+   smeared them; popping them in after it landed made the table look like it
+   had always been that way. Neither is the move doing the revealing. */
+function revealTreats(instant) {
   state.items.forEach((item, i) => {
+    const settle = () => {
+      item.el.classList.remove('treat--in', 'pack--in');
+      if (item.kind === 'loose') item.el.classList.add('treat--idle');
+      else if (item.members) {
+        item.members.forEach((m) => m.el.classList.add('treat--idle'));
+      }
+    };
+
+    if (instant) {
+      item.el.classList.remove('treat--waiting', 'pack--waiting');
+      settle();
+      return;
+    }
+
     const el = item.el;
     setTimeout(() => {
       el.classList.remove('treat--waiting', 'pack--waiting');
@@ -969,15 +1211,16 @@ function pressSubmit() {
       paintDisplay();
       clearFeedback();
       showOst(currentStage().ost.main);
-      state.locked = false;
-      keysLayer.classList.remove('is-locked');
 
       /* Judging the answer disables every key (`restrictKeys([])`), so they
          have to be handed back before the next try — otherwise one wrong
          answer leaves the pad dead. A guided stage goes back to pointing at
-         the digit it is due; the child's turn gets the whole pad again. */
+         the digit it is due; the child's turn gets the whole pad again. Keys
+         first, then unlock: the pad should never look live while every key on
+         it is dead. */
       if (state.expect) pointAtExpected();   // guided: back to the first digit
       else restrictKeys(null);                // the child's turn: whole pad
+      unlockKeypad();
 
       giveHint();                       // the script's three-step ladder
     }, 1400);
@@ -1016,9 +1259,182 @@ function sparkle() {
    land in a heap. With no packs (the tutorial) the heap keeps its verified
    3 + 2 + 1 arrangement on the glass. The jar's inside is 1160..1750 wide.
    ------------------------------------------------------------ */
-/* Scaled with the jar: 650 x 835 at (1144, 192) now, down from
-   697 x 895 at (1113, 184). */
-const JAR_INSIDE = { left: 1225, right: 1701, top: 397, floorY: 923 };
+/* The jar is 650 x 835 at (1204, 192) — the position the keypad screen gives
+   it, which is 60 px right of where the packed frames put it. */
+/* What the jar looks like once everything is in, taken from the design's own
+   packed frame for each stage: where each thing sits, how far it is tilted, and
+   the size its art is drawn at.
+
+   Figma reports these as a post-rotation bounding box plus a rotation, so the
+   box centre is the visual centre and the art's own side comes back from the
+   box: a square of side s tilted by t has a box of s*(|cos t| + |sin t|).
+   Loose treats carry `s`, the 1254 px canvas to draw the treat at; packs carry
+   `w`, the packet art's width.
+
+   The design fills each jar right up for the picture, so most frames hold more
+   treats than the stage actually counts (32 jellies where the answer is 15).
+   The count has to stay honest, so the engine takes the lowest slots first and
+   leaves the rest — the pile keeps the design's sizes, tilts and placement, at
+   the number of things the child is being asked to count.
+
+   Level 2 is the exception: the marshmallow frame is the one packed screen
+   whose node could not be found in the file, so its four packets and two loose
+   treats are authored here in the same idiom.
+   ------------------------------------------------------------ */
+const JAR_LAYOUT = {
+  tutorial: {
+    packs: [],
+    loose: [
+      { cx: 1566.4, cy: 851.4, s: 315.5, rot: -9.0 },
+      { cx: 1349.7, cy: 827.9, s: 280.8, rot: -26.4 },
+      { cx: 1713.5, cy: 755.5, s: 283.5, rot: -22.0 },
+      { cx: 1558.2, cy: 703.9, s: 288.7, rot: 4.5 },
+      { cx: 1385.6, cy: 689.2, s: 296.1, rot: -35.0 },
+      { cx: 1558.5, cy: 607.5, s: 283.5, rot: -22.0 }
+    ]
+  },
+  level1: {
+    packs: [],
+    loose: [
+      { cx: 1461.4, cy: 891.4, s: 259.0, rot: 156.5 },
+      { cx: 1660.9, cy: 880.8, s: 259.0, rot: -35.9 },
+      { cx: 1560.4, cy: 851.4, s: 259.1, rot: 28.2 },
+      { cx: 1362.1, cy: 824.2, s: 259.0, rot: -75.2 },
+      { cx: 1520.2, cy: 824.2, s: 259.0, rot: -139.4 },
+      { cx: 1565.9, cy: 749.8, s: 259.0, rot: 19.5 },
+      { cx: 1425.7, cy: 743.7, s: 259.1, rot: 92.4 },
+      { cx: 1702.8, cy: 743.7, s: 259.1, rot: 74.9 },
+      { cx: 1346.5, cy: 685.5, s: 259.0, rot: 130.3 },
+      { cx: 1519.9, cy: 633.8, s: 258.9, rot: -174.3 },
+      { cx: 1731.0, cy: 593.0, s: 259.0, rot: 47.4 },
+      { cx: 1631.9, cy: 590.9, s: 258.9, rot: -118.9 },
+      { cx: 1326.7, cy: 588.8, s: 258.9, rot: -63.5 },
+      { cx: 1493.4, cy: 561.4, s: 259.0, rot: -8.0 }
+    ]
+  },
+  transition1: {
+    packs: [
+      { cx: 1519.5, cy: 685.5, w: 527.7, rot: -39.4 }
+    ],
+    loose: [
+      { cx: 1538.8, cy: 923.8, s: 102.8, rot: 126.0 },
+      { cx: 1585.7, cy: 923.7, s: 102.8, rot: 23.6 },
+      { cx: 1463.4, cy: 914.4, s: 102.8, rot: -19.1 },
+      { cx: 1668.8, cy: 902.8, s: 102.8, rot: 126.0 },
+      { cx: 1396.3, cy: 899.3, s: 102.8, rot: -81.7 },
+      { cx: 1509.1, cy: 879.1, s: 102.8, rot: 74.8 },
+      { cx: 1310.8, cy: 866.8, s: 102.8, rot: 126.0 },
+      { cx: 1366.4, cy: 856.4, s: 102.8, rot: -19.1 },
+      { cx: 1571.8, cy: 848.8, s: 102.8, rot: 177.2 },
+      { cx: 1698.1, cy: 834.1, s: 102.8, rot: 74.8 },
+      { cx: 1518.4, cy: 825.4, s: 102.8, rot: 2.2 },
+      { cx: 1677.0, cy: 810, s: 174.0, rot: 0 },
+      { cx: 1647.1, cy: 808.1, s: 102.8, rot: 74.8 },
+      { cx: 1313.0, cy: 777.0, s: 102.8, rot: 22.1 },
+      { cx: 1737.8, cy: 765.8, s: 102.8, rot: 126.0 },
+      { cx: 1541.1, cy: 759.1, s: 102.8, rot: 74.8 },
+      { cx: 1674.1, cy: 753.1, s: 102.8, rot: 74.8 },
+      { cx: 1389.9, cy: 750.9, s: 102.8, rot: -29.1 },
+      { cx: 1611.4, cy: 734.4, s: 102.8, rot: -30.5 },
+      { cx: 1483.1, cy: 717.1, s: 102.8, rot: 74.8 },
+      { cx: 1673.1, cy: 696.1, s: 102.8, rot: 74.8 },
+      { cx: 1389.1, cy: 685.1, s: 102.8, rot: 74.8 },
+      { cx: 1292.1, cy: 681.1, s: 102.8, rot: 74.8 },
+      { cx: 1341.0, cy: 664, s: 174.0, rot: 0 },
+      { cx: 1362.1, cy: 633.1, s: 102.8, rot: 74.8 },
+      { cx: 1538.0, cy: 628.0, s: 102.8, rot: -131.5 },
+      { cx: 1445.0, cy: 609.0, s: 102.8, rot: 175.8 },
+      { cx: 1660.1, cy: 582.1, s: 102.8, rot: 74.8 },
+      { cx: 1524.6, cy: 536.6, s: 102.8, rot: -132.9 },
+      { cx: 1590.5, cy: 533.5, s: 102.8, rot: 124.6 },
+      { cx: 1458.0, cy: 491.0, s: 102.8, rot: 73.4 },
+      { cx: 1688.9, cy: 463.4, s: 102.8, rot: -80.3 }
+    ]
+  },
+  transition2: {
+    packs: [
+      { cx: 1634.2, cy: 855.0, w: 290.0, rot: -29.2 },
+      { cx: 1423.8, cy: 858.8, w: 290.0, rot: 5.7 }
+    ],
+    loose: [
+      { cx: 1431.1, cy: 897.3, s: 156.0, rot: 118.8 },
+      { cx: 1678.7, cy: 895.7, s: 156.0, rot: -96.8 },
+      { cx: 1542.4, cy: 807.4, s: 156.0, rot: -169.0 },
+      { cx: 1750.4, cy: 795.4, s: 156.0, rot: -24.7 },
+      { cx: 1404.3, cy: 793.3, s: 156.0, rot: 46.6 },
+      { cx: 1297.0, cy: 787.0, s: 156.0, rot: -25.5 },
+      { cx: 1655.2, cy: 756.2, s: 156.0, rot: 47.5 },
+      { cx: 1587.4, cy: 745.4, s: 156.0, rot: 83.8 },
+      { cx: 1473.4, cy: 733.4, s: 156.0, rot: 119.7 },
+      { cx: 1702.2, cy: 725.2, s: 156.0, rot: 47.8 },
+      { cx: 1359.4, cy: 721.4, s: 156.0, rot: 119.7 },
+      { cx: 1534.1, cy: 680.1, s: 156.0, rot: -24.1 },
+      { cx: 1636.7, cy: 666.7, s: 156.0, rot: -96.0 },
+      { cx: 1408.4, cy: 659.4, s: 156.0, rot: 11.8 },
+      { cx: 1756.2, cy: 653.2, s: 156.0, rot: -131.9 },
+      { cx: 1296.5, cy: 649.5, s: 156.0, rot: -60.0 },
+      { cx: 1473.6, cy: 625.6, s: 156.0, rot: -167.9 },
+      { cx: 1616.4, cy: 592.4, s: 156.0, rot: 84.2 },
+      { cx: 1355.9, cy: 574.9, s: 156.0, rot: 156.2 },
+      { cx: 1728.1, cy: 573.1, s: 156.0, rot: 48.3 },
+      { cx: 1494.6, cy: 564.6, s: 156.0, rot: 120.2 },
+      { cx: 1293.9, cy: 528.9, s: 156.0, rot: 12.3 },
+      { cx: 1407.7, cy: 524.7, s: 156.0, rot: -23.6 }
+    ]
+  },
+  level2: {
+    packs: [
+      { cx: 1480.0, cy: 795, w: 476.4, rot: 7.5 },
+      { cx: 1557.0, cy: 706, w: 476.4, rot: -13.0 },
+      { cx: 1484.0, cy: 624, w: 476.4, rot: 5.5 },
+      { cx: 1547.0, cy: 543, w: 476.4, rot: -9.5 }
+    ],
+    loose: [
+      { cx: 1361.0, cy: 884, s: 230.0, rot: -17.0 },
+      { cx: 1680.0, cy: 866, s: 230.0, rot: 23.0 }
+    ]
+  },
+  level3: {
+    packs: [
+      { cx: 1454.4, cy: 660.5, w: 476.4, rot: -51.5 },
+      { cx: 1636.9, cy: 690.6, w: 476.4, rot: -77.5 },
+      { cx: 1473.2, cy: 714.3, w: 476.4, rot: -103.6 },
+      { cx: 1502.2, cy: 669.6, w: 476.4, rot: -129.7 },
+      { cx: 1500.5, cy: 767.7, w: 476.4, rot: -13.8 }
+    ],
+    loose: []
+  },
+  level4: {
+    packs: [
+      { cx: 1556.0, cy: 807.9, w: 318.8, rot: 38.5 },
+      { cx: 1642.7, cy: 755.9, w: 318.8, rot: 100.8 },
+      { cx: 1364.7, cy: 600.9, w: 318.8, rot: 100.8 },
+      { cx: 1513.6, cy: 649.6, w: 318.8, rot: 64.7 },
+      { cx: 1629.7, cy: 628.7, w: 318.8, rot: 28.7 },
+      { cx: 1630.1, cy: 515.8, w: 318.8, rot: -7.4 },
+      { cx: 1416.9, cy: 801.7, w: 318.8, rot: 10.8 }
+    ],
+    loose: [
+      { cx: 1493.9, cy: 946.9, s: 112.4, rot: 97.2 },
+      { cx: 1549.0, cy: 921.0, s: 112.4, rot: 66.4 },
+      { cx: 1421.6, cy: 916.6, s: 112.4, rot: 81.8 },
+      { cx: 1649.0, cy: 915.0, s: 112.4, rot: 66.4 },
+      { cx: 1354.0, cy: 906.0, s: 112.4, rot: 66.4 },
+      { cx: 1298.1, cy: 885.1, s: 112.4, rot: 51.0 },
+      { cx: 1726.0, cy: 868.0, s: 112.4, rot: -177.1 },
+      { cx: 1748.4, cy: 776.4, s: 112.4, rot: -138.2 },
+      { cx: 1271.0, cy: 742.0, s: 112.4, rot: 105.2 },
+      { cx: 1382.5, cy: 690.5, s: 112.4, rot: 144.1 },
+      { cx: 1723.0, cy: 621.0, s: 112.4, rot: 56.0 },
+      { cx: 1282.6, cy: 600.6, s: 112.4, rot: -99.4 },
+      { cx: 1764.3, cy: 532.3, s: 112.4, rot: 17.2 },
+      { cx: 1304.0, cy: 484.0, s: 112.4, rot: -21.7 },
+      { cx: 1459.6, cy: 453.6, s: 112.4, rot: -60.5 }
+    ]
+  }
+};
+
+const JAR_INSIDE = { left: 1285, right: 1761, top: 397, floorY: 923 };
 
 /* Total area of everything that lands, as a multiple of the jar's inside.
    Above 1 because a heap overlaps — that is what lets the treats be drawn big
@@ -1111,13 +1527,31 @@ function flyTreatsIntoJar() {
   })).concat(loose.map((it) => ({
     kind: 'loose', el: it.el,
     from: { x: it.cx, y: it.cy },
-    w: art.size, h: art.size
+    // Area budget goes by the drawing, not by the transparent square.
+    w: art.size * (art.ink || 1), h: art.size * (art.ink || 1)
   })));
 
   if (!items.length) return WIN.flyDur;
 
-  const scale = jarScale(items);
-  const rest = scatterInJar(items, scale);
+  /* The design lays every stage's jar out by hand, so use its slots. Packs
+     take the design's pack slots in order; loose treats take the lowest slots
+     it offers, because the design draws more of them than the stage counts. */
+  const laid = JAR_LAYOUT[currentStage().id];
+  const useDesign = !!laid
+    && laid.packs.length >= packs.length
+    && laid.loose.length >= loose.length;
+
+  const scale = useDesign ? 1 : jarScale(items);
+  let rest;
+  if (useDesign) {
+    const slots = laid.packs.slice(0, packs.length)
+      .concat(laid.loose.slice(0, loose.length));
+    rest = slots.map((slot) => ({
+      x: slot.cx, y: slot.cy, spin: slot.rot, s: slot.s, w: slot.w
+    }));
+  } else {
+    rest = scatterInJar(items, scale);
+  }
 
   items.forEach((item, i) => {
     const to = rest[i];
@@ -1127,9 +1561,14 @@ function flyTreatsIntoJar() {
     item.el.classList.remove('treat--idle');
 
     // `treat-fly` ends on --spin x 1.7, so aim it at the tilt we want.
-    flyOne(item.el, item.from, to,
-           item.kind === 'pack' ? scale : (art.size * scale) / art.art,
-           i, to.spin / 1.7);
+    /* A design slot says exactly how big to draw it. `--land` scales the
+       image's own pixels, so a treat's slot divides by the 1254 canvas and a
+       pack's by its packet art's width. */
+    let land;
+    if (item.kind === 'pack' && to.w !== undefined) land = to.w / item.w;
+    else if (to.s !== undefined) land = to.s / art.canvas[0];
+    else land = item.kind === 'pack' ? scale : (art.size * scale) / art.art;
+    flyOne(item.el, item.from, to, land, i, to.spin / 1.7);
     item.el.classList.add(item.kind === 'pack' ? 'pack--fly' : 'treat--fly');
     item.el.style.zIndex = Math.round(to.y);   // nearer the front, drawn on top
   });
@@ -1332,12 +1771,22 @@ function speakLine(line, onEnd, onStart) {
    cannot, because each utterance waits its turn in the speech queue. */
 function speakNumber(n, hooks) {
   const onStart = (hooks && hooks.onStart) || null;
-  const onEnd = (hooks && hooks.onEnd) || null;
+  const given = (hooks && hooks.onEnd) || null;
   const word = numWord(n);
+
+  /* Counting holds the idle countdown the same way a spoken line does. */
+  holdAwake();
+  let let_go = false;
+  const onEnd = () => {
+    if (let_go) return;
+    let_go = true;
+    releaseAwake();
+    if (given) given();
+  };
 
   if (!voiceReady()) {
     if (onStart) onStart();
-    if (onEnd) setTimeout(onEnd, 380);
+    setTimeout(onEnd, 380);
     return;
   }
 
@@ -1386,15 +1835,27 @@ window.toggleVoice = toggleVoice;                  // console / host hook
    The longest line overruns the plate at the design's 56 px, so the size
    steps down until it fits.
    ------------------------------------------------------------ */
-const OST_SIZE = { max: 56, min: 30, step: 2, width: 896, height: 112 };
+const OST_SIZE = { max: 56, min: 30, step: 2, width: 882, height: 112 };
 
 /* Puts a line on the plate at the largest size that fits it. Short lines get
    the design's 56 px; a long one steps down, and wraps onto a second row if it
    still will not fit on one. Level 1's line is 84 characters — at any readable
    size on a single row it runs clean off the plate. */
 function showOst(line, done) {
+  wakeUp();                     // a line on the plate means the screen is busy
+  const before = panelTyped.textContent;
   panelTyped.textContent = line;
   panelCaret.classList.remove('panel__caret--on');
+
+  /* A new line sweeps in from the left. Counting is the exception: "1," grows
+     into "1, 2," and re-sweeping the whole run on every number would make the
+     numbers already up there flicker, so an extension of the line on screen
+     just appears. */
+  if (!before || line.indexOf(before) !== 0) {
+    panelText.classList.remove('panel__text--wipe');
+    void panelText.offsetWidth;            // restart the sweep
+    panelText.classList.add('panel__text--wipe');
+  }
 
   let size = OST_SIZE.max;
   panelText.style.fontSize = size + 'px';
@@ -1414,16 +1875,28 @@ function showOst(line, done) {
    With no voice available it waits a read-aloud beat instead, so the flow
    still advances at something like the right speed.
    ------------------------------------------------------------ */
-function say(line, done) {
+/* `quiet` is for the lines the script marks (VO): spoken, never written up.
+   Everything else goes on the plate as Agni starts it, so the two cannot
+   drift apart. */
+function say(line, done, quiet) {
   stage.dispatchEvent(new CustomEvent('vo', { detail: { line } }));
+  const show = () => { if (!quiet) showOst(line); };
+
+  holdAwake();
+  let let_go = false;
+  const finish = () => {
+    if (let_go) return;             // onend and the stall guard both land here
+    let_go = true;
+    releaseAwake();
+    if (done) done();
+  };
 
   if (!voiceReady()) {
-    showOst(line);
-    setTimeout(() => { if (done) done(); }, line.length * VO.charMs + 300);
+    show();
+    setTimeout(finish, line.length * VO.charMs + 300);
     return;
   }
-  // Up on the plate the moment he starts it, so the two cannot drift apart.
-  speakLine(line, () => { if (done) done(); }, () => showOst(line));
+  speakLine(line, finish, show);
 }
 
 /* Speaks several lines back to back. */
@@ -1451,18 +1924,6 @@ function handShow(x, y) {
 
 function handHide() {
   hand.classList.remove('hand--on', 'hand--tap', 'hand--point');
-}
-
-function handTap(done) {
-  hand.classList.remove('hand--point');
-  hand.classList.add('hand--tap');
-  playSfx('tap');
-  setTimeout(() => playSfx('tap'), 620);        // the second dip
-  const wait = reduceMotion ? 0 : 1240;   // two dips
-  setTimeout(() => {
-    hand.classList.remove('hand--tap');
-    if (done) done();
-  }, wait);
 }
 
 function handPointAt(x, y) {
@@ -1556,7 +2017,13 @@ function restrictKeys(allowed) {
   });
 }
 
+/* Unlocking with an empty allow-list would leave the pad looking live while
+   every key is dead — briefly, but long enough for a quick tap to vanish. The
+   caller that opens the pad and the caller that says which keys may respond are
+   not the same, and they do not fire together, so this waits for the second
+   one. */
 function unlockKeypad() {
+  if (state.allowed && !state.allowed.length) return;
   state.locked = false;
   keysLayer.classList.remove('is-locked');
 }
@@ -1567,8 +2034,12 @@ function unlockKeypad() {
 function shutKeypad() {
   keypadPlates.classList.add('keypad--closed');
   keysLayer.classList.add('keys--closed', 'is-locked');
-  answerPanel.classList.add('answer--waiting');   // centred in the jar
+  answerPanel.classList.add('answer--waiting');
   state.locked = true;
+  /* A shut pad responds to nothing, and saying so here is what stops the last
+     stage's restriction leaking into the next one: the tutorial ends with only
+     the 6 clickable, and Level 1 used to open with that still in force. */
+  restrictKeys([]);
 }
 
 function armPanel() {
@@ -1663,11 +2134,11 @@ function runSteps(steps, i, done, token) {
      it — so the child is never watching a still screen. */
   if (step.nudgeKeys) {
     nudgeToKeys();
-    if (step.vo) say(step.vo);
+    if (step.vo) say(step.vo, null, step.voOnly);
     return;
   }
   if (step.awaitTap) { awaitChildTap(); return; }
-  if (step.vo) { say(step.vo, next); return; }
+  if (step.vo) { say(step.vo, next, step.voOnly); return; }
   next();
 }
 
@@ -1675,13 +2146,11 @@ function runSteps(steps, i, done, token) {
    Guided: the hand taps the panel, then walks the digits
    ------------------------------------------------------------ */
 function nudgeToPanel(done) {
-  const x = 1260 + 417 / 2;
-  const y = 358 + 156 / 2 + 196;      // the panel is still centred in the jar
-  handShow(x, y);
-  setTimeout(() => handTap(() => {
-    openKeypad();
-    setTimeout(() => { if (done) done(); }, FLOW.afterTap);
-  }), FLOW.handSettle);
+  /* The hand shows where to tap; the child is the one who taps it. The pad
+     stays shut until they do — in the tutorial as much as anywhere, since
+     watching the hand open it teaches nothing about opening it yourself. */
+  handPointAt(ANSWER_CENTRE.x, ANSWER_CENTRE.y);
+  awaitChildTap(done);
 }
 
 /* The answer can be two digits. The hand points at the one that is due, and
@@ -1701,6 +2170,46 @@ function nudgeToKeys() {
 }
 
 /* ------------------------------------------------------------
+   Dozing
+
+   The treats hold still while anything is going on — while Agni is talking,
+   while they are being counted, while the child is tapping. Ten seconds with
+   nothing happening and they start breathing and blinking again, which is the
+   screen asking to be touched rather than decoration competing with the
+   lesson.
+
+   "Something going on" is both the child's input and the game's own voice, so
+   showOst() pokes this too: a stage that is mid-sentence is not idle.
+   ------------------------------------------------------------ */
+function wakeUp() {
+  stage.classList.remove('stage--sleepy');
+  if (state.sleepyTimer) clearTimeout(state.sleepyTimer);
+  state.sleepyTimer = null;
+  /* Still talking, or counting: the ten seconds have not begun. A line longer
+     than the window would otherwise set the treats blinking mid-sentence. */
+  if (state.talking) return;
+  state.sleepyTimer = setTimeout(() => stage.classList.add('stage--sleepy'),
+                                 SLEEPY_MS);
+}
+
+/* Held while Agni has something to say, and released when he stops — which is
+   when the idle countdown is allowed to start. Counted rather than a flag:
+   counting a group queues a number at a time, and they overlap. */
+function holdAwake() {
+  state.talking += 1;
+  wakeUp();
+}
+
+function releaseAwake() {
+  state.talking = Math.max(0, state.talking - 1);
+  if (!state.talking) wakeUp();     // quiet now: start the ten seconds
+}
+
+['pointerdown', 'pointermove', 'keydown', 'touchstart', 'wheel'].forEach((name) => {
+  window.addEventListener(name, wakeUp, { passive: true });
+});
+
+/* ------------------------------------------------------------
    The child's turn: tap the jar, then enter the number
    ------------------------------------------------------------ */
 function clearIdleTimer() {
@@ -1714,13 +2223,11 @@ function armIdleNudge() {
     // from the spooky house is the nudge's own little voice.
     playSfx('creak');
     answerPanel.classList.add('answer--wiggle');
-    const x = 1260 + 417 / 2;
-    const y = 358 + 156 / 2 + 196;
-    handPointAt(x, y);
+    handPointAt(ANSWER_CENTRE.x, ANSWER_CENTRE.y);
   }, IDLE_NUDGE_MS);
 }
 
-function awaitChildTap() {
+function awaitChildTap(then) {
   displayHit.hidden = false;
   displayPanel.classList.add('display--hint');
   armIdleNudge();
@@ -1731,9 +2238,12 @@ function awaitChildTap() {
     answerPanel.classList.remove('answer--wiggle');
     openKeypad();
     setTimeout(() => {
+      // Guided stages carry on with the hand walking the digits; on the
+      // child's own turn the whole pad simply comes live.
+      if (then) { then(); return; }
       state.expect = null;              // the child chooses freely
       restrictKeys(null);
-      unlockKeypad();
+      unlockKeypad();                   // now that a key can actually respond
     }, FLOW.afterTap);
   };
   displayHit.addEventListener('click', onTap, { once: true });
@@ -1761,7 +2271,16 @@ function giveHint() {
 /* ------------------------------------------------------------
    Running a stage, and moving to the next
    ------------------------------------------------------------ */
-function startStage(index) {
+/* `reveal` is how the treats are put on the table, for the camera's sake:
+
+     after    ms to wait before they appear (default: a short beat)
+     instant  already there rather than popping in one at a time
+     talkAfter  ms to wait before Agni starts — a panned stage holds until the
+                camera has landed, so the lesson does not begin off frame
+
+   A stage the camera pans to sets all three: the treats go down while the room
+   is off frame, and the talking waits for the camera. */
+function startStage(index, reveal) {
   state.gen += 1;                 // anything the last stage scheduled is void
   state.stageIndex = index;
   const stg = currentStage();
@@ -1790,8 +2309,11 @@ function startStage(index) {
   showOst(stg.ost.main);
   stage.dispatchEvent(new CustomEvent('stagestart', { detail: { id: stg.id, index } }));
 
-  setTimeout(revealTreats, 260);
-  setTimeout(() => runSteps(stg.steps, 0), 260 + FLOW.afterOst);
+  const r = reveal || {};
+  const wait = r.after === undefined ? FLOW.reveal : r.after;
+  const talk = r.talkAfter === undefined ? wait : r.talkAfter;
+  setTimeout(() => revealTreats(r.instant), wait);
+  setTimeout(() => runSteps(stg.steps, 0), talk + FLOW.afterOst);
 }
 
 /* ------------------------------------------------------------
@@ -1814,7 +2336,9 @@ function panToStage(index) {
   setTimeout(() => {
     // Out of frame: build the next stage, then jump the camera round to the
     // far side without animating, ready to come back in.
-    startStage(index);
+    /* Off frame: the table is set complete — jar and treats both — so the
+       camera has something to arrive at. Agni waits for it to land. */
+    startStage(index, { after: 0, instant: true, talkAfter: CAM.settle });
     world.classList.remove('world--out');
     world.style.setProperty('--cam-x', CAM.travel + 'px');
 
