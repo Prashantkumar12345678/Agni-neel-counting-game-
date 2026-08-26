@@ -936,3 +936,275 @@ not what made these apples look wrong, and I should not have concluded it was
 without first checking whether anything in the page was drawing them
 part-transparent.
 
+## New assets: a finished keypad, a new plate, a new jelly packet
+
+Three files changed and four were deleted, two of which the code still pointed
+at — `answer-panel.png` and `green-button.png` were being requested and were
+not there.
+
+**The keypad is now one finished picture.** `keypad.png` (1180 x 1333) carries
+twelve plates with their digits drawn in, a red X and a green tick. So all of
+the machinery that used to draw over it is gone: the glyph spans at hand-placed
+coordinates, the `--stroke-digit` / `--stroke-clear` / `--glyph-fix` tokens, the
+green plate image, and the rotated tick built out of `tick.svg`. The keys are
+transparent hit areas and nothing else.
+
+Their rectangles are measured off the picture rather than laid out on a grid of
+my own — the twelve plates are found by opacity, since the gaps between them are
+transparent — so a tap lands on the plate a child aims at. Checked in the
+browser: all twelve hit areas sit on their plates, about 120 x 105 each.
+
+The art is taller than it is wide where the old pad was wider than tall, so the
+pad could not keep the old 503 x 395 slot. It now fills the jar's lower half at
+its own proportions. Jar.png says the clear glass runs y 420 to about 800 with
+the base's rings below, and at full width the bottom row sat down among them —
+so the pad is 396 wide at y 500, and the answer plate lifts 18px to 350 to make
+room. That is the one judgement call here: the rest follows from the art.
+
+**The answer plate** is `answer box.png`, 324 x 120, the plate on its own rather
+than a sprite sheet, so it simply fills its slot instead of being cropped.
+
+**The jelly packet** is `Yellow packet.png`, 685 x 361, ten jellies on a grid
+measured at [43, 56, 586, 239]. Popped whole with the padded cells, as before.
+
+`tick.svg` is left in Assets unreferenced, in case the tick is wanted separately
+again.
+
+## A new jar, and the panel that never matched its own asset
+
+**The jar was being cut.** `Jar.png` is 522 x 761 now — narrower for its height
+than the 697 x 895 jar it replaces. Drawn into the old 650 x 835 box with
+`object-fit: cover`, it filled the width and lost its top and bottom. It keeps
+its vertical band (192 to 1027) and takes its width from the art: 573 x 835 at
+(1242, 192), centred where the old jar was centred.
+
+Everything anchored to the jar was re-measured off the new art rather than
+nudged: the mouth is at y 360, the glass runs x 1281..1777 and y 401..930, the
+in-jar clip follows that, the sparkle layer follows the jar's box, and the
+wooden cap is reseated on a rim that is 447 across at y 297. The new wall is
+thinner than the old one, so the inside lands within a few pixels of where it
+was — which is why the packed arrangements measured from the design still put
+their treats where the design put them.
+
+The plate and pad had to be refitted inside a narrower jar: the plate is drawn
+at `answer box.png`'s own 324 x 120 rather than stretched to 391 x 146, and the
+pad is 346 wide, giving keys of about 106 x 91. The pad art being taller than
+it is wide and the jar being narrower both push the same way, so the pad is
+what gives.
+
+**The instruction panel.** The dragon was sliced off at the waist, with the
+plate's rounded corner cutting through his middle. Two things were fighting:
+the plate was a CSS gradient at x 142, taken from the design frame, while
+`Intrustiction panel.svg` draws its own plate from x 251 with the dragon
+standing over its left end and one hand resting on it. With the gradient 109px
+to the left of the asset's plate, the dragon's crop had to stay narrow enough
+to hide the join — 161px, which stopped at his waist.
+
+Both layers are now crops of that one asset, so they cannot disagree: the plate
+is the asset from its own plate edge rightward (stage 251..1130), the dragon is
+the asset cropped to 240 wide, and the 40px of plate that comes with his hand
+lands exactly on the plate below. The copy moved inside the asset's gold border
+(stage y 54..173, from x 300).
+
+## The heap was cut, and the clip was not the answer
+
+The apples in the jar came out sliced flat down their outer edges. The clip was
+doing it — set to the glass, x 1281..1777 — but widening the clip only moved the
+problem: the heap measured 1199..1861, past the jar's outer silhouette on both
+sides, so the apples would have floated outside the glass instead.
+
+The cause is upstream. The design measured its packed jars against a jar 650
+wide; this one is 573, the same height but relatively narrower. A heap drawn to
+press against the old glass overhangs the new one. So the arrangement is mapped
+onto the new jar rather than trimmed: everything scales by 573/650 about the
+jar's centre line and its inside floor, which keeps the composition, keeps it
+resting on the bottom, and brings it inside the glass.
+
+One stage still would not fit — Level 3's five blueberry packets, the widest
+things that land, reached 19px past the right wall. Rather than a number tuned
+for that one case, the arrangement now steps down 2% at a time about the same
+centre until it is inside the jar's body, and reports what it used. Six stages
+need nothing, Level 4 takes 0.96 and Level 3 takes 0.90. Measured on the drawn
+ink rather than the element boxes — a treat's element is 1254px square and
+scaled, so its box is much larger than the treat.
+
+The clip stays, widened to the jar's body: it is there to hide anything above
+the rim or below the base, which is all it was ever for. Pressing against the
+glass is how the design draws them.
+
+The panel's plate has since been lengthened on request: it runs to x 1200,
+stopping clear of the jar at 1242. Only the plate layer is stretched — the
+dragon keeps his own size, and the join behind his hand still lines up, the
+plate being a flat field between two horizontal borders.
+
+The asset was then redrawn, and the mistake worth recording is that I twice
+patched the crops by eye instead of opening the file. It is **1300 x 184** now,
+where the numbers in the stylesheet said 1079 x 161 — the old asset's size. An
+`<img>` given a size that does not match its SVG's own ratio does not stretch
+it: it scales it uniformly to fit and centres it. Both layers were therefore
+drawing the panel at the wrong scale, and — once one of them had `object-fit:
+fill` and the other did not — at *different* wrong scales, which is what left a
+step in the plate at the dragon's edge. Remeasuring the plate edge from the
+render, twice, could never have fixed that.
+
+Every number now comes from the file: 1300 x 184, its plate path starting at
+x 107 and running y 34..171. Drawn at 0.8838 of its own size the panel is 1149
+wide, reaching x 1200 and stopping clear of the jar — long enough that nothing
+needs stretching at all, which is what removed the seam. The plate layer is the
+asset from its own edge (stage 145.6) rightward; the dragon's crop is 177 wide
+and takes in the slice of plate his hand rests on, at the same scale.
+
+The lesson: when an asset changes, read the asset. A crop measured off a render
+of the wrong-sized asset will look almost right, which is worse than looking
+broken.
+
+## Standing on the floor
+
+The background is a room now: a wall across the top, and a stone floor in
+perspective from y 345 down. Everything on the table was already standing on
+the floor by that line — measured every stage, and no treat or packet has its
+base above 345 — but they read as hanging in front of the wall, because nothing
+was casting a shadow.
+
+Each treat now has one: an ellipse under the drawing's base, squashed because
+the floor is seen at a shallow angle. Three details make it work.
+
+It is placed from `--ink` and `--inkh`, the art table's measure of how much of
+the 1254px box the drawing actually fills — the base of an apple is nowhere
+near the bottom of its element, and a shadow at 100% would float well below it.
+
+It counter-rotates against the treat's resting tilt, so the ellipse stays lying
+flat on the floor while the treat leans.
+
+And it is a sibling of `.treat__body` rather than inside it, so the idle bob
+does not carry it: a treat rocking in place keeps its shadow still, which is
+what something resting on a floor does.
+
+Packets get a flatter, wider one tucked under their lower edge, a packet lying
+flat rather than standing.
+
+In the air there is no shadow, and inside the jar there is none either: a treat
+in the jar is resting on other treats behind glass, not on a floor, and a
+shadow under each one only muddied the pile. `treat--fly` turns it off and
+nothing turns it back on.
+
+The floor shadows were darkened once — at 0.6 the treats still read as hovering
+just above the stone. The core alpha is what does that work; a shadow that is
+only a soft haze never touches the floor however wide it is.
+
+The jar casts one too. Its base is a rounded bowl meeting the stone at about
+y 1030, and the first attempt centred the ellipse on the jar, which put all of
+it behind the glass where none of it could be seen. It is now wider than the
+base is across (560 against 545) and dropped so half of it falls below the
+contact line, pooling out to the sides — which is what a big round thing
+sitting on a floor does.
+
+## The pad was on screen for the whole intro
+
+`shutKeypad()` is what hides the pad, and it first runs when the first stage
+starts — which is after Agni has flown in and the panel has opened. Until then
+the keypad sat in the jar in full view. Sampled from load: opacity 1 at 59ms and
+still 1 a second and a half later.
+
+It is shut in the markup now — `keypad--closed` and `keys--closed` on the
+elements themselves — so it is never drawn, not even in the frames before the
+script runs, and `init()` calls `shutKeypad()` so the state agrees with the
+markup rather than only looking like it does. Sampled again: opacity 0 from the
+first frame.
+
+The cap is nudged 16 left and 14 up from where the rim measurement put it. The
+measurement seats its widest row on the rim, which is right in principle, but
+the jar is drawn at a slight angle and the cap read as sitting a touch right of
+the mouth and low. It is at (1257, 183) now.
+
+## The wall, and two new sounds
+
+**Standing on the floor, properly this time.** The earlier check asked whether
+each object's *base* was below the wall's line at y 345 and found nothing wrong.
+That was the wrong question: a packet lying flat with its base at 420 and its
+top at 212 is still, for the most part, on the wall — which is exactly what the
+top row of packs looked like.
+
+The whole yard is now fitted to the floor. `standOnFloor()` measures the laid-out
+arrangement, scales it about its own centre until it fits the band y 362..1046
+and x 30..1200, and sets it down with its top on the floor. Every stage now
+reports its top at 362 and its bottom no lower than 1046.
+
+It scales rather than shifts, because shifting is not available: the
+arrangements come from design frames whose background was a plain floor top to
+bottom, so they use the full height, and this room's wall takes a third of it.
+A yard 840 tall shifted into a band of 684 only pushes its bottom off the
+screen. The cost is that the fuller stages are drawn a little smaller than the
+design drew them; the alternative is treats on the wall.
+
+**The pad rises instead of fading.** Fading it in left it part-transparent over
+the jar's blue glass, and the green tick at 10% opacity over blue glass is a
+murky green-grey. Same mistake as fading the treats in over the purple floor,
+and the same fix: full strength from the first frame, and it rises and settles.
+
+**Two sounds the pack was missing.** `agni-fly.wav` — air rushing past, three
+wingbeats, and a three-note sparkle as he lands — plays under his entrance. And
+`room-tone.wav` is the room: a slow minor music box over a low drone and a
+breath of draught, on a 19.2s loop at 0.16 volume, well under the cues.
+
+Both are synthesised rather than sourced. The rest of the pack is CC0 files from
+the web, but nothing there was a dragon flapping past, and a bed has to loop
+seamlessly — a downloaded clip that almost loops clicks once a minute forever.
+The music box's tails wrap around to the top of the buffer, and the drone and
+draught complete a whole number of cycles, so the loop point is silent.
+
+The bed is armed on the first touch rather than at load, since browsers will not
+start audio before then, and it fades up over about four seconds: a room tone
+that starts at full level announces itself instead of being a room.
+
+## One tap before anything
+
+Arming the bed on the first touch was only half the problem, and it took a
+second report to make me check the other half. Hooking `HTMLMediaElement.play`
+before the page's own script and loading it the way a child's browser would:
+
+    BLOCKED agni-fly.wav — NotAllowedError
+    BLOCKED panel-open.ogg — NotAllowedError
+    BLOCKED count.ogg — NotAllowedError   (x6)
+
+Every cue in the intro was refused. The flight cue could never be heard,
+because the flight played automatically on load and a browser will not make a
+sound before it has been touched. Adding the file was never going to be enough.
+
+So the intro now waits behind a "Tap to play" gate. That one gesture is what
+lets the wingbeats play, the panel-open cue, the counting, and Agni's voice —
+speech synthesis wants the same permission. It is the ordinary way a game with
+sound opens, and the same log now reads `played agni-fly.wav`.
+
+The pre-intro state moved into the markup at the same time — plate closed,
+standing dragon hidden — because `playIntro()` is what used to set those, and
+with it deferred the frame behind the gate showed the panel already open and
+Agni already landed, giving the entrance away.
+
+The pad's rise was also lengthened to 620ms over a longer travel: at 460ms with
+a sharp ease it was most of the way there by the third frame, which reads as a
+snap however smooth the numbers are.
+
+The cap ended up at (1268, 169.4), 514 x 261, after a few nudges by eye. Each
+one keeps the asset's 563:286 ratio and moves the origin so the cap grows about
+its own centre — bumping the width alone would have walked it right and down
+every time.
+
+## The packet takes the glow, not the ten inside it
+
+Counting a group lit each of the ten in turn, and nothing put them out — so by
+the end all ten were glowing, and then the packet lit up on top of them. A lit
+packet full of lit treats is one bright yellow rectangle with nothing to read in
+it.
+
+`countGroupItems()` now clears the ten when its count finishes and marks the
+packet instead, so the attention moves from the treats to the bag they make up
+— which is the thing the stage is teaching. Traced through Transition 1: the lit
+count climbs 1 to 10, drops to 0, and the packet lights as "10 treats. This is a
+group of 10." goes up.
+
+The plate's pulse was then taken down to a small two-beat breath with no lift at
+all: it used to rise 5px as it swelled, which read as the plate hopping. Its
+centre now holds at y 465.0 through the whole cycle while the height breathes
+about 2%, and nothing is drawn over it — `box-shadow` stays `none`.
+

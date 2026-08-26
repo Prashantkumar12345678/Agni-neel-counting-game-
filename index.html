@@ -32,16 +32,25 @@
         <!-- Loose treats: blueberries scattered on the table (190:538 … 190:553) -->
         <div class="treats" id="treats"></div>
 
-        <!-- Jar: holds the answer display + keypad (190:506) -->
+        <!-- Jar: holds the answer display + keypad (190:506), and stands on
+             the floor like everything else -->
+        <span class="jar-shade" aria-hidden="true"></span>
         <img class="jar" src="Assets/Jar.png" alt="" aria-hidden="true" />
 
         <!-- Instruction panel (190:507). The plate opens after Agni lands, then
              the copy types itself out. -->
         <div class="panel">
-          <div class="panel__plate" id="panelPlate"></div>
-          <!-- Standing Agni: the left 161 x 161 of the panel SVG, which is
-               exactly this layer in the design (190:513) -->
-          <div class="agni-stand" id="agniStand">
+          <!-- The plate: the panel asset from its own plate edge rightward -->
+          <!-- Closed and hidden in the markup, so the frame behind the start
+               gate is an empty room: playIntro() sets these itself, but it does
+               not run until the tap, and until then the plate and the standing
+               dragon were sitting there giving the entrance away. -->
+          <div class="panel__plate panel__plate--closed" id="panelPlate">
+            <img src="Assets/Intrustiction panel.svg" alt="" />
+          </div>
+          <!-- Standing Agni: the same asset, cropped to the dragon and the
+               hand he rests on the plate -->
+          <div class="agni-stand agni-stand--waiting" id="agniStand">
             <img src="Assets/Intrustiction panel.svg" alt="Agni the dragon" />
           </div>
           <p class="panel__text" id="panelText">
@@ -61,8 +70,8 @@
         <!-- Answer panel (190:516). Waits centred in the jar; tapping it lifts
              the panel to its design spot and opens the pad underneath. -->
         <div class="answer" id="answer">
-          <div class="display crop" aria-hidden="true">
-            <img src="Assets/answer-panel.png" alt="" />
+          <div class="display" aria-hidden="true">
+            <img src="Assets/answer box.png" alt="" />
           </div>
           <output class="display__value" id="displayValue" aria-live="polite" aria-label="Your answer"></output>
           <button class="display__hit" id="displayHit" type="button" aria-label="Open the number pad"></button>
@@ -76,11 +85,25 @@
           <img class="hand__art" src="Assets/hand.webp" alt="" />
         </div>
 
-        <!-- Keypad plates (190:518) — one image; the keys below are transparent hit areas -->
-        <div class="keypad crop" aria-hidden="true">
+        <!-- The pad, finished: twelve plates with their digits, the red X and
+             the green tick all drawn in. The keys below are transparent hit
+             areas measured off this picture. -->
+        <!-- Shut in the markup, not just once the first stage starts: the pad
+             used to sit there in full view through Agni's whole entrance,
+             because that is when shutKeypad() first runs. -->
+        <div class="keypad keypad--closed" aria-hidden="true">
           <img src="Assets/keypad.png" alt="" />
         </div>
-        <div class="keys is-locked" id="keys" role="group" aria-label="Number keypad"></div>
+        <div class="keys is-locked keys--closed" id="keys" role="group"
+             aria-label="Number keypad"></div>
+
+        <!-- A browser will not play a sound before the page has been touched:
+             every cue in the intro came back NotAllowedError, Agni's wingbeats
+             included. So the intro waits for one tap, which is also what lets
+             his voice speak. -->
+        <button class="begin" id="begin" type="button">
+          <span class="begin__pill">Tap to play</span>
+        </button>
 
       </div>
 

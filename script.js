@@ -109,8 +109,8 @@ Object.keys(ART).forEach((k) => {
 const PACK_CELL_PAD = 0.09;
 
 const PACKETS = {
-  jelly:   { file: 'packet-jelly.png', size: [1936, 1017],
-            grid: [130, 157, 1677.2, 696] },
+  jelly:   { file: 'Yellow packet.png', size: [685, 361],
+            grid: [43, 56, 586, 239] },
   straw:   { file: 'packet-strawberry.png', size: [1402, 1122],
             grid: [109, 321, 1177, 548] },
   /* The design keeps this one whole, in the Assets folder rather than in a
@@ -319,9 +319,9 @@ const IDLE_NUDGE_MS = 10000;   // the script's inactivity window
    function would be in its dead zone for anything that ran early. */
 const SLEEPY_MS = 10000;
 
-/* The answer plate's centre — 391 x 146 at (1344, 368), and it no longer
+/* The answer plate's centre — 324 x 120 at (1367, 405), and it no longer
    moves. Both the "tap here" hand and the inactivity nudge point at it. */
-const ANSWER_CENTRE = { x: 1344 + 391 / 2, y: 368 + 146 / 2 };
+const ANSWER_CENTRE = { x: 1367 + 324 / 2, y: 405 + 120 / 2 };
 
 /* Keypad hit-area grid. The plates are baked into keypad.png, so each
    key is a transparent rectangle laid over its plate. Centres are taken
@@ -329,13 +329,39 @@ const ANSWER_CENTRE = { x: 1344 + 391 / 2, y: 368 + 146 / 2 };
    button, which has its own exact rect from the design (190:533). */
 /* The pad is a clean 3 x 4 grid: 503 x 395 at (1260, 523) divides into cells
    of 167.67 x 98.75, and the design's digits sit on exactly those centres. */
-const KEYPAD_RECT = { x: 1260, y: 523, w: 503, h: 395 };
-const KEY_W = KEYPAD_RECT.w / 3;
-const KEY_H = KEYPAD_RECT.h / 4;
-const COL_CENTERS = [0, 1, 2].map((c) => KEYPAD_RECT.x + (c + 0.5) * KEY_W);
-const ROW_CENTERS = [0, 1, 2, 3].map((r) => KEYPAD_RECT.y + (r + 0.5) * KEY_H);
+/* `keypad.png` is now the whole pad — twelve finished plates with their
+   digits, a red X and a green tick drawn into it. So there are no glyphs to
+   set and no separate artwork for the tick: the keys are transparent hit
+   areas, and their rectangles are measured off the picture rather than laid
+   out on a grid of my own, so a tap lands on the plate a child aims at.
+
+   The art is 1180 x 1333 and its twelve plates sit at these rectangles. It is
+   taller than it is wide, where the old pad was wider than tall, so the pad
+   fills the jar's lower half instead of a shallow band across it. */
+const PAD_ART = { w: 1180, h: 1333 };
+const PAD_PLATES = [
+  [ 42,  16, 360, 312], [416,  18, 350, 310], [778,  16, 360, 312],
+  [ 40, 338, 362, 308], [414, 338, 354, 310], [780, 338, 358, 310],
+  [ 40, 660, 362, 304], [414, 660, 354, 304], [778, 660, 360, 304],
+  [ 38, 970, 364, 312], [412, 972, 356, 310], [780, 970, 362, 312]
+];
+
+/* Centred under the answer plate, at the art's own proportions, sized to land
+   between the plate and the jar's floor. The jar is narrower than the one it
+   replaces and the pad art is taller than it is wide, so the pad is what has
+   to give: 346 wide fills the space from the plate down to the glass floor at
+   y 930, and the keys come out about 106 x 91. */
+const KEYPAD_RECT = { x: 1356, y: 539, w: 346, h: 346 * PAD_ART.h / PAD_ART.w };
+const PAD_K = KEYPAD_RECT.w / PAD_ART.w;
+
+/* A plate's rectangle on the stage, from its rectangle in the art. */
+function plateRect(i) {
+  const [x, y, w, h] = PAD_PLATES[i];
+  return { x: KEYPAD_RECT.x + x * PAD_K, y: KEYPAD_RECT.y + y * PAD_K,
+           w: w * PAD_K, h: h * PAD_K };
+}
 /* The submit key keeps the design's own rect rather than the grid cell. */
-const SUBMIT_RECT = { x: 1591, y: 820.08, w: 166, h: 97.92 };
+const SUBMIT_RECT = plateRect(11);      // the green tick, bottom right
 
 /* Key rects below are written in frame coordinates, then re-based onto the
    keypad's own box so the plates and the digits open as one piece. */
@@ -343,19 +369,21 @@ const KEYPAD_ORIGIN = { x: KEYPAD_RECT.x, y: KEYPAD_RECT.y };
 
 /* Keys — glyph positions are the exact text coordinates from the
    design (190:519), so the hand-placed offsets are preserved. */
+/* `plate` indexes PAD_PLATES, so every key's hit area is the plate a child
+   can see. Nothing here draws: the labels are for the screen reader. */
 const KEYS = [
-  { type: 'digit',  value: '1', label: '1', col: 0, row: 0, gx: 1333, gy: 518 },
-  { type: 'digit',  value: '2', label: '2', col: 1, row: 0, gx: 1489, gy: 519 },
-  { type: 'digit',  value: '3', label: '3', col: 2, row: 0, gx: 1651, gy: 521 },
-  { type: 'digit',  value: '4', label: '4', col: 0, row: 1, gx: 1321, gy: 616 },
-  { type: 'digit',  value: '5', label: '5', col: 1, row: 1, gx: 1486, gy: 616 },
-  { type: 'digit',  value: '6', label: '6', col: 2, row: 1, gx: 1650, gy: 616 },
-  { type: 'digit',  value: '7', label: '7', col: 0, row: 2, gx: 1330, gy: 718 },
-  { type: 'digit',  value: '8', label: '8', col: 1, row: 2, gx: 1489, gy: 716 },
-  { type: 'digit',  value: '9', label: '9', col: 2, row: 2, gx: 1655, gy: 718 },
-  { type: 'clear',  value: 'X', label: 'X', col: 0, row: 3, gx: 1324, gy: 812, light: true },
-  { type: 'digit',  value: '0', label: '0', col: 1, row: 3, gx: 1487, gy: 816 },
-  { type: 'submit', value: 'ok', label: 'Check answer', col: 2, row: 3 }
+  { type: 'digit',  value: '1', label: '1', plate: 0,  col: 0, row: 0 },
+  { type: 'digit',  value: '2', label: '2', plate: 1,  col: 1, row: 0 },
+  { type: 'digit',  value: '3', label: '3', plate: 2,  col: 2, row: 0 },
+  { type: 'digit',  value: '4', label: '4', plate: 3,  col: 0, row: 1 },
+  { type: 'digit',  value: '5', label: '5', plate: 4,  col: 1, row: 1 },
+  { type: 'digit',  value: '6', label: '6', plate: 5,  col: 2, row: 1 },
+  { type: 'digit',  value: '7', label: '7', plate: 6,  col: 0, row: 2 },
+  { type: 'digit',  value: '8', label: '8', plate: 7,  col: 1, row: 2 },
+  { type: 'digit',  value: '9', label: '9', plate: 8,  col: 2, row: 2 },
+  { type: 'clear',  value: 'X', label: 'X', plate: 9,  col: 0, row: 3 },
+  { type: 'digit',  value: '0', label: '0', plate: 10, col: 1, row: 3 },
+  { type: 'submit', value: 'ok', label: 'Check answer', plate: 11, col: 2, row: 3 }
 ];
 
 const MAX_DIGITS = 2;
@@ -368,7 +396,7 @@ const PAD_OPEN_AFTER_LIFT = 260;
    Jar.png — its opening is centred on (1454, 287) and the neck is 507 px
    across — and the pile is a pyramid on the jar's floor. */
 const JAR_GATE = { x: 1529, y: 30 };     // well above the jar — they fall from height
-const JAR_MOUTH = { x: 1529, y: 288 };   // the opening itself
+const JAR_MOUTH = { x: 1529, y: 360 };   // the opening itself, on the new rim
 
 /* Where they come to rest: a 3 + 2 + 1 heap on the jar's floor, every slot
    jittered so no two wins stack identically.
@@ -448,13 +476,20 @@ const SFX = {
     capSeal: 'cap-seal.ogg',  // the little shine after the lid lands
     coins: 'coins.ogg',       // a reward rattle over a right answer
     creak: 'creak.ogg',       // spooky house flavour, used sparingly
-    pan: 'pan.ogg'            // the camera moving to the next jar
+    pan: 'pan.ogg',           // the camera moving to the next jar
+    agniFly: 'agni-fly.wav'   // wingbeats and a sparkle as he lands
   },
+  /* The room itself: a slow minor music box over a low drone and a breath of
+     draught, on a 19.2s loop. Kept well under the cues — it is a room, not a
+     tune to listen to. Synthesised rather than sourced, because a downloaded
+     clip that almost loops clicks once a minute forever. */
+  bed: { file: 'room-tone.wav', volume: 0.16 },
   /* Per-cue level, because the packs are not mixed to each other. */
   gain: {
     count: 0.55, tap: 0.4, key: 0.5, padOpen: 0.45, panelOpen: 0.5,
     correct: 0.5, wrong: 0.4, berryFly: 0.3, berryLand: 0.4, capClose: 0.9,
-    win: 0.62, stage: 0.42, capSeal: 0.55, coins: 0.5, creak: 0.3, pan: 0.45
+    win: 0.62, stage: 0.42, capSeal: 0.55, coins: 0.5, creak: 0.3, pan: 0.45,
+    agniFly: 0.5
   }
 };
 
@@ -512,6 +547,7 @@ const FLOW = {
 };
 
 const stage = document.getElementById('stage');
+const begin = document.getElementById('begin');
 const world = document.getElementById('world');
 const treatsLayer = document.getElementById('treats');
 const keysLayer = document.getElementById('keys');
@@ -744,7 +780,67 @@ function oneGroupYard(stage, art) {
   return items;
 }
 
+/* The floor. The background is a room, and the wall across the top of it runs
+   down to y 345 — so anything drawn above that is standing on the wall, which
+   is where the top row of packs was sitting. Everything the child counts has to
+   be inside this band. It stops at x 1200 for the jar. */
+const YARD_BAND = { top: 362, bottom: 1046, left: 30, right: 1200 };
+
+/* Fits a laid-out yard into that band.
+
+   The arrangements come from design frames whose background was a plain floor
+   from top to bottom, so they use the full height. This room has a wall in the
+   way and the usable height is smaller, so the yard is scaled down about its
+   own centre until it fits and set down with its top on the floor. Scaled, not
+   shifted: shifting a yard 840 tall into a band of 684 only pushes the bottom
+   of it off the screen. */
+function standOnFloor(items, art) {
+  if (!items.length) return items;
+
+  const boxOf = (it) => {
+    if (it.kind === 'pack') return [it.x, it.y, it.x + it.w, it.y + it.h];
+    const w = art.art * it.scale * art.ink;
+    const h = art.art * it.scale * art.inkH;
+    return [it.cx - w / 2, it.cy - h / 2, it.cx + w / 2, it.cy + h / 2];
+  };
+  let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity;
+  items.forEach((it) => {
+    const q = boxOf(it);
+    l = Math.min(l, q[0]); t = Math.min(t, q[1]);
+    r = Math.max(r, q[2]); b = Math.max(b, q[3]);
+  });
+
+  const k = Math.min(1,
+    (YARD_BAND.bottom - YARD_BAND.top) / (b - t),
+    (YARD_BAND.right - YARD_BAND.left) / (r - l));
+  const mid = (l + r) / 2;
+  /* Keep the yard where it is across the frame unless the scaled width no
+     longer fits, in which case centre it in the band. */
+  const half = (r - l) * k / 2;
+  const toMid = Math.min(Math.max(mid, YARD_BAND.left + half),
+                         YARD_BAND.right - half);
+
+  if (k === 1 && t >= YARD_BAND.top && b <= YARD_BAND.bottom) return items;
+
+  items.forEach((it) => {
+    if (it.kind === 'pack') {
+      it.x = toMid + (it.x - mid) * k;
+      it.y = YARD_BAND.top + (it.y - t) * k;
+      it.w *= k; it.h *= k;
+    } else {
+      it.cx = toMid + (it.cx - mid) * k;
+      it.cy = YARD_BAND.top + (it.cy - t) * k;
+      it.scale *= k;
+    }
+  });
+  return items;
+}
+
 function layoutStage(stage) {
+  return standOnFloor(layoutStageRaw(stage), stageArt(stage));
+}
+
+function layoutStageRaw(stage) {
   const items = [];
   const art = stageArt(stage);
 
@@ -891,11 +987,22 @@ function treatEl(art, scale, i) {
   el.style.setProperty('--th', art.canvas[1] + 'px');
   el.style.setProperty('--ta', art.art + 'px');
   el.style.setProperty('--treat-scale', scale);
+  /* The shadow needs to know where the drawing's base is inside this box and
+     how wide it is there — the box is 1254 square and the drawing sits in the
+     middle of it, so neither is 100%. */
+  el.style.setProperty('--ink', art.ink);
+  el.style.setProperty('--inkh', art.inkH);
   el.style.setProperty('--idle-dur', (3200 + (i % 7) * 170) + 'ms');
   /* Wrapped: the delay is only there to keep neighbours out of step, and an
      unbounded one would leave the tenth treat in a pack waiting seconds
      before it first moved. */
   el.style.setProperty('--idle-delay', ((i % 7) * 330) + 'ms');
+
+  /* First child, so it paints under the treat: the patch of floor it is
+     standing on. */
+  const shade = document.createElement('span');
+  shade.className = 'treat__shade';
+  el.appendChild(shade);
 
   const body = document.createElement('div');
   body.className = 'treat__body';
@@ -973,6 +1080,10 @@ function renderStage(stage) {
     pack.style.top = item.y + 'px';
     pack.style.width = item.w + 'px';
     pack.style.height = item.h + 'px';
+
+    const pshade = document.createElement('span');
+    pshade.className = 'pack__shade';
+    pack.appendChild(pshade);
 
     if (item.packet) {
       const packet = PACKETS[item.packet];
@@ -1093,31 +1204,11 @@ function renderKeys() {
     btn.dataset.value = key.value;
     btn.setAttribute('aria-label', key.type === 'clear' ? 'Delete last digit' : key.label);
 
-    const rect = key.type === 'submit' ? SUBMIT_RECT : {
-      x: COL_CENTERS[key.col] - KEY_W / 2,
-      y: ROW_CENTERS[key.row] - KEY_H / 2,
-      w: KEY_W,
-      h: KEY_H
-    };
+    const rect = plateRect(key.plate);
     btn.style.setProperty('--kx', rect.x - KEYPAD_ORIGIN.x);
     btn.style.setProperty('--ky', rect.y - KEYPAD_ORIGIN.y);
     btn.style.setProperty('--kw', rect.w);
     btn.style.setProperty('--kh', rect.h);
-
-    if (key.type === 'submit') {
-      btn.innerHTML =
-        '<div class="submit__plate"><img src="Assets/green-button.png" alt="" /></div>' +
-        '<div class="submit__tick"><div class="submit__tick-inner">' +
-        '<img src="Assets/tick.svg" alt="" /></div></div>';
-    } else {
-      const glyph = document.createElement('span');
-      glyph.className = 'key__glyph' + (key.light ? ' key__glyph--light' : '');
-      glyph.style.setProperty('--gx', key.gx - rect.x);
-      glyph.style.setProperty('--gy', key.gy - rect.y);
-      glyph.textContent = key.label;
-      btn.appendChild(glyph);
-    }
-
     keysLayer.appendChild(btn);
   });
 }
@@ -1259,8 +1350,74 @@ function sparkle() {
    land in a heap. With no packs (the tutorial) the heap keeps its verified
    3 + 2 + 1 arrangement on the glass. The jar's inside is 1160..1750 wide.
    ------------------------------------------------------------ */
-/* The jar is 650 x 835 at (1204, 192) — the position the keypad screen gives
-   it, which is 60 px right of where the packed frames put it. */
+/* The jar is 573 x 835 at (1242, 192) — its own proportions, centred where the
+   650-wide jar it replaces was centred. */
+/* The design measured its packed jars against a jar 650 wide. This one is 573,
+   the same height but relatively narrower, so a heap that filled the old jar's
+   width overhangs this one — by about 40px each side, which my clip then sliced
+   flat off the outer treats.
+
+   The arrangement is the design's and worth keeping, so it is mapped onto the
+   new jar rather than trimmed: everything scales by 573/650 about the jar's
+   centre line and its floor, so the heap keeps its shape, still rests on the
+   bottom, and comes in inside the glass. */
+const JAR_FIT = {
+  k: 573 / 650,
+  /* The slots below were already shifted onto the 650-wide jar's centre line,
+     so the centre does not move — only the width scales. `fromFloor` is where
+     that heap came to rest; `toFloor` is the new glass floor, less a little. */
+  fromX: 1529, fromFloor: 973,
+  toX: 1529, toFloor: 925
+};
+
+function fitToJar(x, y) {
+  return { x: JAR_FIT.toX + (x - JAR_FIT.fromX) * JAR_FIT.k,
+           y: JAR_FIT.toFloor + (y - JAR_FIT.fromFloor) * JAR_FIT.k };
+}
+
+/* Nothing may hang out of the jar. The design draws its heaps pressing against
+   the glass, and after the fit above one stage's packets still reached past the
+   right wall. So the whole arrangement steps down about the jar's centre line
+   and floor until it is inside — the composition is kept and shrunk, rather
+   than the outliers being trimmed off, which is what the clip used to do.
+
+   The box is the jar's body rather than its inside: a treat touching the glass
+   is how the design draws them. */
+const JAR_BODY = { left: 1252, right: 1805, top: 384, bottom: 1000 };
+
+function shrinkToFit(rest, items, art, aspect) {
+  const boxOf = (to, item) => {
+    const w = item.kind === 'pack' ? to.w : to.s * art.ink;
+    const h = item.kind === 'pack' ? to.w / aspect : to.s * art.inkH;
+    return [to.x - w / 2, to.y - h / 2, to.x + w / 2, to.y + h / 2];
+  };
+  const at = (f) => rest.map((to) => ({
+    x: JAR_FIT.toX + (to.x - JAR_FIT.toX) * f,
+    y: JAR_FIT.toFloor + (to.y - JAR_FIT.toFloor) * f,
+    spin: to.spin,
+    s: to.s === undefined ? undefined : to.s * f,
+    w: to.w === undefined ? undefined : to.w * f
+  }));
+
+  for (let step = 0; step <= 14; step += 1) {
+    const f = 1 - step * 0.02;
+    const tried = at(f);
+    let l = Infinity, r = -Infinity, t = Infinity, b = -Infinity;
+    tried.forEach((to, i) => {
+      const q = boxOf(to, items[i]);
+      l = Math.min(l, q[0]); t = Math.min(t, q[1]);
+      r = Math.max(r, q[2]); b = Math.max(b, q[3]);
+    });
+    if (l >= JAR_BODY.left && r <= JAR_BODY.right
+        && t >= JAR_BODY.top && b <= JAR_BODY.bottom) {
+      state.jarShrink = f;
+      return tried;
+    }
+  }
+  state.jarShrink = 0.72;
+  return at(0.72);
+}
+
 /* What the jar looks like once everything is in, taken from the design's own
    packed frame for each stage: where each thing sits, how far it is tilted, and
    the size its art is drawn at.
@@ -1434,7 +1591,11 @@ const JAR_LAYOUT = {
   }
 };
 
-const JAR_INSIDE = { left: 1285, right: 1761, top: 397, floorY: 923 };
+/* The new jar's glass, measured off `Jar.png` (522 x 761 drawn 573 x 835 at
+   1242, 192): the wall is thinner than the old jar's, so the inside comes out
+   within a few pixels of where it was and the packed arrangements below still
+   land where the design put them. */
+const JAR_INSIDE = { left: 1281, right: 1777, top: 401, floorY: 930 };
 
 /* Total area of everything that lands, as a multiple of the jar's inside.
    Above 1 because a heap overlaps — that is what lets the treats be drawn big
@@ -1546,9 +1707,15 @@ function flyTreatsIntoJar() {
   if (useDesign) {
     const slots = laid.packs.slice(0, packs.length)
       .concat(laid.loose.slice(0, loose.length));
-    rest = slots.map((slot) => ({
-      x: slot.cx, y: slot.cy, spin: slot.rot, s: slot.s, w: slot.w
-    }));
+    rest = slots.map((slot) => {
+      const f = fitToJar(slot.cx, slot.cy);
+      return { x: f.x, y: f.y, spin: slot.rot,
+               s: slot.s === undefined ? undefined : slot.s * JAR_FIT.k,
+               w: slot.w === undefined ? undefined : slot.w * JAR_FIT.k };
+    });
+    const packet = currentStage().packet ? PACKETS[currentStage().packet] : null;
+    rest = shrinkToFit(rest, items, art,
+                       packet ? packet.size[0] / packet.size[1] : PACK_ASPECT);
   } else {
     rest = scatterInJar(items, scale);
   }
@@ -1661,6 +1828,28 @@ function loadSfx() {
     audio.preload = 'auto';
     sfxBank[name] = audio;
   });
+}
+
+/* The room tone. Browsers will not start audio before the page has been
+   touched, so this is armed on the first interaction rather than at load, and
+   fades in — a bed that starts at full level announces itself. */
+let roomTone = null;
+
+function startRoomTone() {
+  if (roomTone || !SFX.enabled) return;
+  roomTone = new Audio(SFX.dir + SFX.bed.file);
+  roomTone.loop = true;
+  roomTone.volume = 0;
+  const played = roomTone.play();
+  if (played && played.catch) played.catch(() => { roomTone = null; });
+
+  const target = SFX.bed.volume;
+  const step = () => {
+    if (!roomTone) return;
+    roomTone.volume = Math.min(target, roomTone.volume + target / 40);
+    if (roomTone.volume < target) setTimeout(step, 90);
+  };
+  setTimeout(step, 200);
 }
 
 /* `rate` shifts the pitch as well as the speed — `preservesPitch = false` is
@@ -1814,6 +2003,7 @@ function speakNumber(n, hooks) {
 
 /* Some browsers hold speech until the page has been interacted with. */
 function unlockVoice() {
+  startRoomTone();          // the same first touch is what lets audio start
   if (!VO.enabled) return;
   try { window.speechSynthesis.resume(); } catch (err) { /* nothing to resume */ }
 }
@@ -1835,7 +2025,7 @@ window.toggleVoice = toggleVoice;                  // console / host hook
    The longest line overruns the plate at the design's 56 px, so the size
    steps down until it fits.
    ------------------------------------------------------------ */
-const OST_SIZE = { max: 56, min: 30, step: 2, width: 882, height: 112 };
+const OST_SIZE = { max: 56, min: 30, step: 2, width: 926, height: 105 };
 
 /* Puts a line on the plate at the largest size that fits it. Short lines get
    the design's 56 px; a long one steps down, and wraps onto a second row if it
@@ -1989,7 +2179,16 @@ function countLoose(from, done) {
 function countGroupItems(index, from, done) {
   const pack = packItems()[index];
   if (!pack || !pack.members) { done(); return; }
-  countSequence(pack.members.map((m) => m.el), from, done);
+  /* The ten light up one at a time as they are counted. When the count is done
+     they go out and the packet lights up instead — the attention moves from the
+     treats to the bag they make up, which is the point being taught. Left as it
+     was, ten lit treats inside a lit packet came out as one bright yellow
+     rectangle with nothing to read in it. */
+  countSequence(pack.members.map((m) => m.el), from, () => {
+    pack.members.forEach((m) => m.el.classList.remove('treat--glow'));
+    pack.el.classList.add('pack--marked');
+    done();
+  });
 }
 
 function countGroupTotal(index, say, done) {
@@ -2377,6 +2576,7 @@ function playIntro() {
   panelPlate.classList.add('panel__plate--closed');
   agniStand.classList.add('agni-stand--waiting');
   agni.classList.add('agni--in', 'agni--flying');
+  playSfx('agniFly');            // wingbeats under the flight
 
   setTimeout(() => {
     agniStand.classList.remove('agni-stand--waiting');
@@ -2460,13 +2660,29 @@ function init() {
   window.addEventListener('orientationchange', fitStage);
 
   renderKeys();
+  shutKeypad();            // and the state agrees with the markup
   paintDisplay();
   displayHit.hidden = true;
   bindKeypad();
   bindKeyboard();
   loadSfx();
   initVoice();
-  playIntro();
+  awaitStart();
+}
+
+/* Nothing starts until the page has been touched once.
+
+   Not a preference: a browser refuses to play audio before then, and every cue
+   in the intro came back NotAllowedError — Agni's wingbeats, the panel opening,
+   the counting. The same gesture is what lets his voice speak. One tap buys all
+   of it, and it is the ordinary way a game with sound opens. */
+function awaitStart() {
+  const go = () => {
+    begin.hidden = true;
+    unlockVoice();          // room tone, and speech is allowed from here
+    playIntro();
+  };
+  begin.addEventListener('click', go, { once: true });
 }
 
 init();

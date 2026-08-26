@@ -25,15 +25,12 @@
 
   /* Itim's web line box sits 2px above Figma's text box; nudged back so the
      digits land on the same pixels as the design. */
-  --glyph-fix: 2px;
 
   /* Text strokes. The design outlines every text layer — Figma's generated
      code drops these, so the widths below were measured off the design render.
      A centred stroke painted over the fill (the -webkit-text-stroke default)
      thins the fill and haloes outside it, which is what the design shows. */
   --stroke-title: 2.4px;   /* halved by paint-order: 1px of black outside the fill */
-  --stroke-digit: 1px;   /* white outline on the dark keypad digits */
-  --stroke-clear: 2.5px;   /* ink outline on the white X */
   --stroke-answer: 6px;  /* ink outline on the ink answer — reads as bolder */
   --font-title: "Londrina Solid", "Segoe UI", system-ui, sans-serif;
 
@@ -166,7 +163,11 @@ html, body {
   /* The jar's interior, and it has to move with the jar: at 1144 this box was
      170 in from the right, and leaving it there after the jar moved sliced the
      treats nearest the glass down one side. */
-  clip-path: inset(240px 110px 75px 1220px round 24px 24px 178px 178px);
+  /* The jar's body, not its inside. Clipping to the glass sliced the outer
+     treats flat where they press against it — and pressing against the glass
+     is how the design draws them. This still hides anything above the rim or
+     below the base, which is all the clip was ever for. */
+  clip-path: inset(380px 113px 80px 1250px round 24px 24px 178px 178px);
   z-index: 3;
 }
 
@@ -195,6 +196,44 @@ html, body {
   transform: scale(var(--treat-scale, 1)) rotate(var(--treat-rot, 0deg));
 }
 .treat--waiting { opacity: 0; }
+/* The patch of floor a treat is standing on.
+
+   The background is a room — a wall along the top, a stone floor below it from
+   y 345 — and without a shadow every treat read as hanging in front of the
+   wall rather than standing on the floor. An ellipse under the drawing's base
+   is what settles it: squashed, because the floor is seen at a shallow angle,
+   and offset a little down and right, away from the light.
+
+   `--ink` and `--inkh` come from the art table, because the element is a 1254
+   square with the drawing centred in it — the base of an apple is nowhere near
+   the bottom of its box. The counter-rotation keeps the ellipse lying flat on
+   the floor while the treat itself is tilted. It does not ride the idle bob
+   either, that being on `.treat__body`, so a treat rocking in place keeps its
+   shadow still — which is exactly what a thing resting on a floor does. */
+.treat__shade {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + var(--inkh, 0.8) * 50%);
+  width: calc(var(--ink, 0.8) * 86%);
+  height: calc(var(--ink, 0.8) * 23%);
+  transform: translate(-46%, -38%) rotate(calc(var(--treat-rot, 0deg) * -1));
+  border-radius: 50%;
+  /* Darker than it was: at 0.6 the treats still read as hovering just above
+     the stone. The core is what does the work — a shadow that is only a haze
+     never touches the floor. */
+  background: radial-gradient(closest-side,
+    rgba(12, 4, 22, 0.88), rgba(12, 4, 22, 0.54) 46%, rgba(12, 4, 22, 0) 100%);
+  pointer-events: none;
+}
+
+/* Once a treat leaves the floor it has no floor to cast onto — and it never
+   gets one back, because where it lands is inside a glass jar, resting on other
+   treats. `treat--fly` stays on after the landing, which is what keeps it off. */
+.treat--fly .treat__shade, .pack--fly .pack__shade {
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
 /* Inner wrapper carries the idle motion, so the entrance pop and the
    cheer hop on .treat stay free to use transform themselves. */
 .treat__body {
@@ -353,6 +392,19 @@ html, body {
 }
 .pack--waiting { opacity: 0; }
 
+/* A packet lies flat on the floor, so its shadow is a wider, flatter ellipse
+   tucked under its lower edge rather than an oval under a standing thing. */
+.pack__shade {
+  position: absolute;
+  left: 50%; top: 96%;
+  width: 90%; height: 14%;
+  transform: translate(-46%, -38%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side,
+    rgba(12, 4, 22, 0.8), rgba(12, 4, 22, 0.48) 46%, rgba(12, 4, 22, 0) 100%);
+  pointer-events: none;
+}
+
 /* A packet is one picture with its ten treats already in it. */
 .pack__art {
   position: absolute; inset: 0;
@@ -440,10 +492,33 @@ html, body {
    Jar (190:506)
    ------------------------------------------------------------ */
 .jar {
-  position: absolute; left: 1204px; top: 192px;
-  width: 650px; height: 835px;
-  object-fit: cover;
+  /* `Jar.png` is 522 x 761 now — narrower for its height than the jar it
+     replaces. Drawn into the old 650 x 835 box, `object-fit: cover` filled the
+     width and cut the top and bottom off. It keeps its vertical band and takes
+     its width from the art instead. */
+  position: absolute; left: 1242px; top: 192px;
+  width: 573px; height: 835px;
+  object-fit: fill;
   opacity: var(--jar-opacity);
+}
+
+/* The jar stands on the same floor. Its base is a rounded bowl that meets the
+   stone at about y 1030, some 450 across there, so the shadow is a broad
+   ellipse centred on that line — most of it hidden behind the glass, pooling
+   out to the sides and below, which is what a big round thing sitting on a
+   floor does. Centring it on the jar's own middle put it all behind the base
+   where none of it could be seen. */
+.jar-shade {
+  position: absolute;
+  /* Wider than the glass is at its base (545 across) so it pools out to the
+     sides where it can actually be seen, and low enough that half of it falls
+     below the contact line rather than behind the bowl. */
+  left: 1249px; top: 998px;
+  width: 560px; height: 86px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side,
+    rgba(12, 4, 24, 0.72), rgba(12, 4, 24, 0.4) 50%, rgba(12, 4, 24, 0) 100%);
+  pointer-events: none;
 }
 
 /* ------------------------------------------------------------
@@ -464,8 +539,8 @@ html, body {
    closed jar. Sits above the jar and the cap, below the hand.
    ------------------------------------------------------------ */
 .sparkles {
-  position: absolute; left: 1204px; top: 192px;
-  width: 650px; height: 835px;
+  position: absolute; left: 1242px; top: 192px;
+  width: 573px; height: 835px;
   z-index: 5;
   pointer-events: none;
 }
@@ -490,8 +565,13 @@ html, body {
 }
 
 .jar-lid {
-  position: absolute; left: var(--cap-x, 1271px); top: var(--cap-y, 95px);
-  width: var(--cap-w, 502.5px); height: var(--cap-h, 255.2px);
+  /* Reseated on the new jar: its rim is 447 across at stage y 297, and the
+     cap's widest row is 491 of the asset's 563, so the cap is 512 wide and its
+     widest row lands on the rim. Nudged from that by hand — the jar is drawn
+     at a slight angle, so the measurement alone leaves the cap looking a
+     little off its mouth. */
+  position: absolute; left: var(--cap-x, 1268.0px); top: var(--cap-y, 169.4px);
+  width: var(--cap-w, 514px); height: var(--cap-h, 261.1px);
   z-index: 4;              /* always above the lifted treats layer */
   opacity: 0;
   pointer-events: none;
@@ -512,12 +592,29 @@ html, body {
 /* ------------------------------------------------------------
    Instruction panel (190:507)
    ------------------------------------------------------------ */
+/* The plate and the dragon are both crops of `Intrustiction panel.svg`, so
+   they cannot disagree about where the plate begins — which is what went wrong
+   when the plate was a CSS gradient at one x and the asset drew its own at
+   another.
+
+   Every number here comes from the file. It is 1300 x 184, and its plate path
+   starts at x 107 and runs y 34..171. It was 1079 x 161 before it was redrawn,
+   and carrying those numbers forward squashed it: an <img> given a size that
+   does not match its SVG's own ratio scales it non-uniformly, and the two
+   layers were squashing it by different amounts, which left a step in the
+   plate at the dragon's edge.
+
+   Drawn at 0.8838 of its own size it comes out 1149 wide, reaching x 1200 and
+   stopping clear of the jar — long enough that nothing has to be stretched. */
 .panel__plate {
-  position: absolute; left: 142px; top: 62px;
-  width: 988px; height: 120px;
-  border-radius: 24px 24px 24px 10px;   /* tl tr br bl, from the panel SVG path */
-  background: linear-gradient(to right, var(--banner-from), var(--banner-to));
+  position: absolute; left: 145.6px; top: 26px;
+  width: 1054.4px; height: 162.6px;
+  overflow: hidden;
   transform-origin: left center;
+}
+.panel__plate > img {
+  position: absolute; left: -94.6px; top: 0;
+  width: 1149.0px; height: 162.6px; max-width: none;
 }
 /* Shut until Agni lands, then it unrolls from the left, behind him */
 .panel__plate--closed { transform: scaleX(0); }
@@ -535,15 +632,18 @@ html, body {
    square yields this layer exactly. The sliver of plate that comes with it
    sits precisely on top of .panel__plate, which is the same rounded rect at
    the same coordinate — so the two are indistinguishable. */
+/* Wide enough for all of him, hand included — his hand rests on the plate, so
+   the crop takes in a slice of it, which lands exactly on the plate layer
+   below because both are the same picture at the same scale. */
 .agni-stand {
   position: absolute; left: 51px; top: 26px;
-  width: 161px; height: 161px;
+  width: 176.8px; height: 162.6px;
   overflow: hidden;
   transition: opacity 220ms ease;
 }
 .agni-stand > img {
   position: absolute; left: 0; top: 0;
-  width: 1079px; height: 161px; max-width: none;
+  width: 1149.0px; height: 162.6px; max-width: none;
 }
 .agni-stand--waiting { opacity: 0; }
 
@@ -574,8 +674,11 @@ html, body {
    (a stale `top` left over beside a duplicated `height`), which is why the
    copy sat low. */
 .panel__text {
-  position: absolute; left: 232px; top: 62px;
-  height: 120px;
+  /* Inside the plate's border, and clear of the dragon. The inside is 121px
+     tall; the inset is kept small because it is the height, not the width,
+     that decides how far a two-row line has to step down. */
+  position: absolute; left: 250px; top: 60px;
+  height: 113px;
   /* Left-aligned, starting just past the dragon: the line reads from where he
      is standing, and a wrapped second row lines up under the first. */
   display: flex; align-items: center; justify-content: flex-start;
@@ -583,7 +686,7 @@ html, body {
   font-family: var(--font-title);
   /* Sized in showOst(): a long line steps down, and wraps onto a second row
      if it still will not fit. The plate is 988 wide and 120 tall. */
-  width: 882px;
+  width: 926px;
   font-size: 56px; line-height: 1.04;
   color: #fff;
   /* Stroke behind the fill, so the black sits outside the letters */
@@ -630,8 +733,10 @@ html, body {
    label coming loose. The breathe and the wiggle are what mark it tappable.
    ------------------------------------------------------------ */
 .answer {
-  position: absolute; left: 1344px; top: 368px;
-  width: 391px; height: 146px;
+  /* `answer box.png` is 324 x 120, and drawn at that size rather than
+     stretched. Sits just under the jar's rim, centred on it. */
+  position: absolute; left: 1367px; top: 405px;
+  width: 324px; height: 120px;
   transform: translateY(var(--answer-lift, 0px));
   transition: transform 520ms cubic-bezier(0.3, 1.18, 0.4, 1);
 }
@@ -651,11 +756,14 @@ html, body {
 
 .display {
   position: absolute; left: 0; top: 0;
-  width: 391px; height: 146px;
+  width: 324px; height: 120px;
 }
+/* `answer box.png` is the plate on its own — 324 x 120, near enough the same
+   proportions as the slot — so it simply fills it. The old file was a sprite
+   sheet and needed cropping. */
 .display > img {
-  left: -16%; top: 0;
-  width: 128.4%; height: 372.73%;
+  position: absolute; left: 0; top: 0;
+  width: 100%; height: 100%;
 }
 
 /* Waiting for a tap: the plate pops, then settles, then pops again. Nothing is
@@ -663,25 +771,29 @@ html, body {
    A single slow swell at 1.5% was too quiet to read as "tap me"; this is a
    beat with a small lift on it, still gentle enough not to nag. */
 .display--hint {
-  animation: panel-breathe 1500ms cubic-bezier(0.34, 1.56, 0.5, 1) infinite;
-  transform-origin: 50% 60%;
+  animation: panel-breathe 1500ms cubic-bezier(0.34, 1.4, 0.5, 1) infinite;
+  /* Centred, so the pulse happens where the plate already is. */
+  transform-origin: 50% 50%;
 }
 
+/* A small two-beat pulse and nothing else — it stays put, and there is no glow
+   or ring drawn over it. It used to lift as it swelled, which read as the plate
+   hopping rather than breathing. */
 @keyframes panel-breathe {
-  0%, 100% { transform: scale(1)     translateY(0); }
-  30%      { transform: scale(1.055) translateY(-5px); }
-  55%      { transform: scale(1.012) translateY(-1px); }
-  75%      { transform: scale(1.03)  translateY(-3px); }
+  0%, 100% { transform: scale(1); }
+  32%      { transform: scale(1.032); }
+  58%      { transform: scale(1.008); }
+  80%      { transform: scale(1.021); }
 }
 
-/* The design places a single "6" at 1419/380; the live value is centred
-   over the plate instead so two-digit answers stay balanced. */
+/* Centred over the plate, so a two-digit answer stays balanced on it. Sized
+   to the plate: 324 x 120, with the number inset from the plate's studs. */
 .display__value {
-  position: absolute; left: 0; top: 20px;
-  width: 391px; height: 120px;
+  position: absolute; left: 0; top: 8px;
+  width: 324px; height: 104px;
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-digit);
-  font-size: 100px; line-height: 120px;
+  font-size: 82px; line-height: 104px;
   color: var(--ink);
   -webkit-text-stroke: var(--stroke-answer) var(--ink);
   transition: color 160ms ease, text-shadow 160ms ease;
@@ -700,21 +812,23 @@ html, body {
 /* ------------------------------------------------------------
    Keypad plates (190:518) — a crop of the same sprite sheet
    ------------------------------------------------------------ */
+/* Kept in step with KEYPAD_RECT in script.js, which measures the key hit
+   areas off this same picture. */
 .keypad {
-  position: absolute; left: 1260px; top: 523px;
-  width: 503px; height: 395px;
+  position: absolute; left: 1356px; top: 539px;
+  width: 346px; height: 390.9px;
 }
 .keypad > img {
-  left: -0.06%; top: -35.58%;
-  width: 100.13%; height: 138.11%;
+  position: absolute; left: 0; top: 0;
+  width: 100%; height: 100%;
 }
 
 /* The keys layer shares the keypad's box, so the plate artwork and the
    digits open as one piece. Key rects are therefore relative to the
    keypad's origin (see KEYPAD_ORIGIN in script.js). */
 .keys {
-  position: absolute; left: 1260px; top: 523px;
-  width: 503px; height: 395px;
+  position: absolute; left: 1356px; top: 539px;
+  width: 346px; height: 390.9px;
 }
 
 /* ------------------------------------------------------------
@@ -793,76 +907,17 @@ html, body {
 .key::after {
   content: "";
   position: absolute; inset: 0;
-  border-radius: 26px;
+  border-radius: 22px;
   background: rgba(255, 255, 255, 0.34);
   opacity: 0;
   transition: opacity 90ms ease;
 }
 .key.is-pressed::after { opacity: 1; }
 
-/* Artwork and glyphs paint above the highlight */
-.key__glyph, .submit__plate, .submit__tick { z-index: 1; }
-
-/* Digit glyphs sit at their exact designed coordinates (190:519),
-   so they keep the design's hand-placed offsets rather than being
-   re-centred inside the hit area. */
-.key__glyph {
-  position: absolute;
-  left: calc(var(--gx) * 1px);
-  top: calc(var(--gy) * 1px + var(--glyph-fix));
-  font-family: var(--font-digit);
-  font-size: 90px;
-  line-height: 1.2;              /* 90px x 1.2 = the 108px text box in Figma */
-  color: var(--ink);
-  -webkit-text-stroke: var(--stroke-digit) #fff;
-  white-space: nowrap;
-  pointer-events: none;
-}
-.key__glyph--light {
-  color: #fff;
-  -webkit-text-stroke: var(--stroke-clear) var(--ink);
-}
-
-.key.is-pressed .key__glyph { transform: scale(0.94); }
-
-/* Submit key (190:532): green plate + tick, its own artwork */
-.key--submit::after { border-radius: 22px; }
-
-.submit__plate {
-  position: absolute; left: 0; top: 0;
-  width: 166px; height: 97.92px;
-  opacity: var(--submit-opacity);
-  overflow: hidden;
-}
-.submit__plate > img {
-  position: absolute; max-width: none;
-  left: 0; top: -0.088px;
-  width: 166px; height: 98.1px;
-}
-
-/* Tick (267:169): a 91.94 x 82.19 box at frame (1573.06, 816.05), which is
-   (42.06, -4.03) from the green plate's own origin. */
-.submit__tick {
-  position: absolute;
-  left: 42.06px; top: -4.03px;
-  width: 91.94px; height: 82.19px;
-  display: flex; align-items: center; justify-content: center;
-}
-.submit__tick-inner {
-  position: relative;
-  width: 46.86px; height: 78.75px;
-  transform: rotate(55.85deg) skewX(-0.64deg);
-}
-.submit__tick-inner > img {
-  position: absolute; max-width: none;
-  left: -0.094px; top: -0.11px;
-  width: 47.24px; height: 84.08px;
-}
-
-.key--submit.is-pressed .submit__plate {
-  opacity: var(--submit-opacity-pressed);
-  transform: scale(0.97);
-}
+/* Nothing is drawn over a key: the plate, its digit, the red X and the green
+   tick are all in `keypad.png`. What used to live here — glyph text at
+   hand-placed coordinates, a green plate image and a rotated tick — is gone
+   with the artwork that needed it. */
 
 /* Locked out while the answer is being judged, or before the pad opens */
 .keys.is-locked .key { pointer-events: none; }
@@ -877,18 +932,23 @@ html, body {
 .keypad, .keys { transform-origin: 50% 100%; }
 .keypad--closed, .keys--closed { opacity: 0; pointer-events: none; }
 .keypad--opening, .keys--opening {
-  animation: keypad-open 420ms cubic-bezier(0.25, 1.25, 0.4, 1) both;
+  animation: keypad-open 620ms cubic-bezier(0.33, 0.9, 0.3, 1) both;
 }
 
+/* Full strength from the first frame: fading the pad in left it part
+   transparent over the jar's blue glass, and a green tick at 10% opacity over
+   blue glass is a murky green-grey — the same mistake as fading the treats in
+   over the purple floor. It rises and settles instead, which is smooth without
+   ever blending with what is behind it. */
 @keyframes keypad-open {
-  from { opacity: 0; transform: translateY(70px) scale(0.9); }
-  to   { opacity: 1; transform: none; }
+  from { transform: translateY(96px) scale(0.86); }
+  to   { transform: none; }
 }
 
 /* Tap target over the answer panel, with a glow that invites the tap */
 .display__hit {
   position: absolute; left: 0; top: 0;
-  width: 391px; height: 146px;
+  width: 324px; height: 120px;
   border: 0; padding: 0;
   background: none;
   border-radius: 30px;
@@ -896,6 +956,41 @@ html, body {
   -webkit-appearance: none; appearance: none;
 }
 .display__hit[hidden] { display: none; }
+
+/* ------------------------------------------------------------
+   The start gate. One tap before anything happens, because that is what a
+   browser requires before it will play a sound — and the intro is the one
+   moment with a cue of its own to lose.
+   ------------------------------------------------------------ */
+.begin {
+  position: absolute; left: 0; top: 0;
+  width: 1920px; height: 1080px;
+  border: 0; padding: 0;
+  background: rgba(16, 6, 30, 0.42);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  z-index: 20;
+  -webkit-appearance: none; appearance: none;
+}
+.begin[hidden] { display: none; }
+
+.begin__pill {
+  font-family: var(--font-title);
+  font-size: 58px;
+  color: #fff;
+  -webkit-text-stroke: 3px #2a0f3d;
+  paint-order: stroke fill;
+  padding: 18px 62px;
+  border-radius: 999px;
+  background: linear-gradient(to bottom, #b06ff0, #7a2ec4);
+  box-shadow: 0 10px 0 rgba(40, 12, 62, 0.55), 0 0 34px rgba(180, 120, 255, 0.5);
+  animation: begin-breathe 1700ms ease-in-out infinite;
+}
+
+@keyframes begin-breathe {
+  0%, 100% { transform: scale(1)     translateY(0); }
+  45%      { transform: scale(1.045) translateY(-5px); }
+}
 
 /* ------------------------------------------------------------
    Reduced motion — hold every element in its finished state
@@ -924,4 +1019,5 @@ html, body {
   .world, .world--out, .world--in { transition: none; }
   .answer { transition: none; }
   .panel__caret, .panel__text--wipe .panel__typed { animation: none; }
+  .begin__pill { animation: none; }
 }
