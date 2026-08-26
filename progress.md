@@ -1208,3 +1208,23 @@ all: it used to rise 5px as it swelled, which read as the plate hopping. Its
 centre now holds at y 465.0 through the whole cycle while the height breathes
 about 2%, and nothing is drawn over it — `box-shadow` stays `none`.
 
+## New pad and plate art, and a count that leaves a record
+
+`keypad 2.png` (514 x 563) and `answer box 2.png` (345 x 129) replace the
+previous pair. The pad art is a little wider for its height than the last one
+(0.913 against 0.885), so the same height in the jar gives a slightly wider pad:
+357 x 391 at (1350, 539), keys about 104 x 92, hit areas measured off the
+picture as before. Its clear key is a back arrow rather than an X, which is what
+that key always did. The plate is drawn at its own ratio, 324 x 121.
+
+**Counting now leaves a record.** Each treat popped as it was counted and
+dropped all the way back to its own size, so nothing on screen showed how far
+the count had got. A counted treat now settles a little larger and lifted and
+holds there while the next is counted, and the next — the pop is the beat, and
+what it leaves behind is the tally.
+
+Traced through the tutorial, reading each glowing treat's actual lift: they
+settle at -63 and stay, while the one being counted passes through -111 to -120.
+By the sixth number all six are held at -63. The shadows stay on the floor
+under them, which is what makes the lift read as a lift.
+

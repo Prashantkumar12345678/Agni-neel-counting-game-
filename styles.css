@@ -304,12 +304,16 @@ html, body {
   animation: berry-pop 560ms cubic-bezier(0.25, 1.45, 0.4, 1) both;
 }
 
-/* A pop and a small hop — the beat a child counts along to. */
+/* A pop, and then it stays up. The beat a child counts along to is the pop;
+   what it leaves behind is the record of what has been counted, so each treat
+   settles a little larger and lifted and holds there while the next one is
+   counted, and the next. It used to drop all the way back to its own size,
+   which left nothing to show the count had reached it. */
 @keyframes berry-pop {
   0%   { transform: translateY(0) scale(1); }
-  40%  { transform: translateY(-8%) scale(1.12); }
-  75%  { transform: translateY(0) scale(1); }
-  100% { transform: translateY(0) scale(1.02); }
+  38%  { transform: translateY(-9%) scale(1.14); }
+  70%  { transform: translateY(-4%) scale(1.05); }
+  100% { transform: translateY(-5%) scale(1.08); }
 }
 
 /* Entrance pop. `both` holds opacity 0 through the stagger delay and the
@@ -440,11 +444,13 @@ html, body {
   animation: cell-pop 560ms cubic-bezier(0.25, 1.4, 0.4, 1) both;
 }
 
+/* Same for a treat inside a packet: it holds its pop until the group's count
+   is done and the packet takes over. */
 @keyframes cell-pop {
   0%   { transform: translateY(0) scale(1); }
-  40%  { transform: translateY(-11%) scale(1.16); }
-  75%  { transform: translateY(0) scale(1.01); }
-  100% { transform: translateY(-1%) scale(1.04); }
+  38%  { transform: translateY(-12%) scale(1.18); }
+  70%  { transform: translateY(-5%) scale(1.06); }
+  100% { transform: translateY(-6%) scale(1.09); }
 }
 
 /* Packet art brings its own wrapper, so the drawn tray is only for a group
@@ -736,7 +742,7 @@ html, body {
   /* `answer box.png` is 324 x 120, and drawn at that size rather than
      stretched. Sits just under the jar's rim, centred on it. */
   position: absolute; left: 1367px; top: 405px;
-  width: 324px; height: 120px;
+  width: 324px; height: 121.1px;
   transform: translateY(var(--answer-lift, 0px));
   transition: transform 520ms cubic-bezier(0.3, 1.18, 0.4, 1);
 }
@@ -756,7 +762,7 @@ html, body {
 
 .display {
   position: absolute; left: 0; top: 0;
-  width: 324px; height: 120px;
+  width: 324px; height: 121.1px;
 }
 /* `answer box.png` is the plate on its own — 324 x 120, near enough the same
    proportions as the slot — so it simply fills it. The old file was a sprite
@@ -790,7 +796,7 @@ html, body {
    to the plate: 324 x 120, with the number inset from the plate's studs. */
 .display__value {
   position: absolute; left: 0; top: 8px;
-  width: 324px; height: 104px;
+  width: 324px; height: 105.1px;
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-digit);
   font-size: 82px; line-height: 104px;
@@ -815,8 +821,8 @@ html, body {
 /* Kept in step with KEYPAD_RECT in script.js, which measures the key hit
    areas off this same picture. */
 .keypad {
-  position: absolute; left: 1356px; top: 539px;
-  width: 346px; height: 390.9px;
+  position: absolute; left: 1351px; top: 539px;
+  width: 357.0px; height: 391.0px;
 }
 .keypad > img {
   position: absolute; left: 0; top: 0;
@@ -827,8 +833,8 @@ html, body {
    digits open as one piece. Key rects are therefore relative to the
    keypad's origin (see KEYPAD_ORIGIN in script.js). */
 .keys {
-  position: absolute; left: 1356px; top: 539px;
-  width: 346px; height: 390.9px;
+  position: absolute; left: 1351px; top: 539px;
+  width: 357.0px; height: 391.0px;
 }
 
 /* ------------------------------------------------------------
@@ -948,7 +954,7 @@ html, body {
 /* Tap target over the answer panel, with a glow that invites the tap */
 .display__hit {
   position: absolute; left: 0; top: 0;
-  width: 324px; height: 120px;
+  width: 324px; height: 121.1px;
   border: 0; padding: 0;
   background: none;
   border-radius: 30px;

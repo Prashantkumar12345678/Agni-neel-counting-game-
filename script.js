@@ -319,9 +319,10 @@ const IDLE_NUDGE_MS = 10000;   // the script's inactivity window
    function would be in its dead zone for anything that ran early. */
 const SLEEPY_MS = 10000;
 
-/* The answer plate's centre — 324 x 120 at (1367, 405), and it no longer
-   moves. Both the "tap here" hand and the inactivity nudge point at it. */
-const ANSWER_CENTRE = { x: 1367 + 324 / 2, y: 405 + 120 / 2 };
+/* The answer plate's centre — `answer box 2.png` drawn 324 x 121.2 at
+   (1367, 405), centred on the jar. Both the "tap here" hand and the inactivity
+   nudge point at it. */
+const ANSWER_CENTRE = { x: 1529, y: 405 + 121.2 / 2 };
 
 /* Keypad hit-area grid. The plates are baked into keypad.png, so each
    key is a transparent rectangle laid over its plate. Centres are taken
@@ -338,20 +339,15 @@ const ANSWER_CENTRE = { x: 1367 + 324 / 2, y: 405 + 120 / 2 };
    The art is 1180 x 1333 and its twelve plates sit at these rectangles. It is
    taller than it is wide, where the old pad was wider than tall, so the pad
    fills the jar's lower half instead of a shallow band across it. */
-const PAD_ART = { w: 1180, h: 1333 };
+const PAD_ART = { w: 514, h: 563 };
 const PAD_PLATES = [
-  [ 42,  16, 360, 312], [416,  18, 350, 310], [778,  16, 360, 312],
-  [ 40, 338, 362, 308], [414, 338, 354, 310], [780, 338, 358, 310],
-  [ 40, 660, 362, 304], [414, 660, 354, 304], [778, 660, 360, 304],
-  [ 38, 970, 364, 312], [412, 972, 356, 310], [780, 970, 362, 312]
+  [ 25,  11, 150, 133], [187,  11, 148, 133], [346,  11, 149, 133],
+  [ 24, 149, 151, 129], [187, 150, 147, 129], [346, 150, 149, 129],
+  [ 24, 284, 151, 130], [187, 283, 147, 131], [345, 284, 150, 132],
+  [ 24, 420, 151, 128], [187, 419, 147, 128], [346, 420, 149, 127]
 ];
 
-/* Centred under the answer plate, at the art's own proportions, sized to land
-   between the plate and the jar's floor. The jar is narrower than the one it
-   replaces and the pad art is taller than it is wide, so the pad is what has
-   to give: 346 wide fills the space from the plate down to the glass floor at
-   y 930, and the keys come out about 106 x 91. */
-const KEYPAD_RECT = { x: 1356, y: 539, w: 346, h: 346 * PAD_ART.h / PAD_ART.w };
+const KEYPAD_RECT = { x: 1351, y: 539, w: 357.0, h: 391.0 };
 const PAD_K = KEYPAD_RECT.w / PAD_ART.w;
 
 /* A plate's rectangle on the stage, from its rectangle in the art. */
@@ -381,7 +377,7 @@ const KEYS = [
   { type: 'digit',  value: '7', label: '7', plate: 6,  col: 0, row: 2 },
   { type: 'digit',  value: '8', label: '8', plate: 7,  col: 1, row: 2 },
   { type: 'digit',  value: '9', label: '9', plate: 8,  col: 2, row: 2 },
-  { type: 'clear',  value: 'X', label: 'X', plate: 9,  col: 0, row: 3 },
+  { type: 'clear',  value: 'X', label: 'back', plate: 9,  col: 0, row: 3 },
   { type: 'digit',  value: '0', label: '0', plate: 10, col: 1, row: 3 },
   { type: 'submit', value: 'ok', label: 'Check answer', plate: 11, col: 2, row: 3 }
 ];
