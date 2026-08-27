@@ -430,6 +430,11 @@ const INTRO = {
   landAt: 1250,       // flight cross-fades into the standing pose
   typeAt: 1520,       // first character
   typeStep: 45,       // ms per character
+  /* Agni's fly-past, and the sheet that rolls off behind him. Must match the
+     duration of cross-wipe / cross-edge / cross-fly in the stylesheet: this is
+     when the sheet is taken away, and while it read 1450 against their 3000 the
+     sheet vanished at 60% of the roll. */
+  crossing: 6000,
   treatsAfter: 120,   // pause after the line finishes, then the treats pop
   treatStagger: 70
 };
@@ -475,11 +480,10 @@ const SFX = {
     pan: 'pan.ogg',           // the camera moving to the next jar
     agniFly: 'agni-fly.wav'   // wingbeats and a sparkle as he lands
   },
-  /* The room itself: a slow minor music box over a low drone and a breath of
-     draught, on a 19.2s loop. Kept well under the cues — it is a room, not a
-     tune to listen to. Synthesised rather than sourced, because a downloaded
-     clip that almost loops clicks once a minute forever. */
-  bed: { file: 'room-tone.wav', volume: 0.16 },
+  /* The supplied background track. Kept well under the cues — it plays behind
+     a voice counting, so it has to stay out of the way. (`room-tone.wav`, the
+     synthesised bed this replaces, is left in the folder unused.) */
+  bed: { file: 'BG  music.mp3', volume: 0.15 },
   /* Per-cue level, because the packs are not mixed to each other. */
   gain: {
     count: 0.55, tap: 0.4, key: 0.5, padOpen: 0.45, panelOpen: 0.5,
@@ -528,7 +532,10 @@ const VO = {
 const FLOW = {
   reveal: 260,          // beat before the treats pop in
   afterPanel: 260,      // pause once the plate is open, then the on-screen text
-  afterOst: 340,        // then Agni starts talking
+  /* Only the stages whose first line is unspoken put their own line up first,
+     and nothing replaces it there — so this no longer has to be long enough to
+     read a line that is about to be swapped. */
+  afterOst: 450,        // then Agni starts talking
   countStart: 620,      // beat before the counting begins
   countStep: 720,       // one treat per step, when there is no voice to follow
   countGap: 260,        // breath between spoken numbers
@@ -544,6 +551,7 @@ const FLOW = {
 
 const stage = document.getElementById('stage');
 const begin = document.getElementById('begin');
+const cross = document.getElementById('cross');
 const world = document.getElementById('world');
 const treatsLayer = document.getElementById('treats');
 const keysLayer = document.getElementById('keys');
@@ -1255,6 +1263,10 @@ function pressClear() {
   clearFeedback();
   state.entry = state.entry.slice(0, -1);
   paintDisplay();
+  /* The key cue pitched well down: a digit going in and a digit coming back out
+     should be the same sound heard in opposite directions. The back key had no
+     sound at all. */
+  playSfx('key', 0.66);
   // A guided stage points at the digit that is now due again.
   if (state.expect) {
     if (state.entry.length < String(state.answer).length) pointAtExpected();
@@ -1833,7 +1845,8 @@ let roomTone = null;
 
 function startRoomTone() {
   if (roomTone || !SFX.enabled) return;
-  roomTone = new Audio(SFX.dir + SFX.bed.file);
+  // encodeURI: the supplied filename has spaces in it.
+  roomTone = new Audio(encodeURI(SFX.dir + SFX.bed.file));
   roomTone.loop = true;
   roomTone.volume = 0;
   const played = roomTone.play();
@@ -2501,7 +2514,14 @@ function startStage(index, reveal) {
   renderStage(stg);
   if (index > 0) playSfx('stage');
   shutKeypad();
-  showOst(stg.ost.main);
+  /* The stage's own line is skipped when the first thing Agni says is going to
+     replace it — which is what put "Count the Treats Together" on screen at the
+     start only to swap it for "Let us count these treats together" a moment
+     later. The two say the same thing, and the spoken one is the one that
+     belongs to the moment. It is still the line the plate falls back to while
+     the child is thinking, and after a wrong answer. */
+  const opener = (stg.steps || [])[0];
+  if (!(opener && opener.vo && !opener.voOnly)) showOst(stg.ost.main);
   stage.dispatchEvent(new CustomEvent('stagestart', { detail: { id: stg.id, index } }));
 
   const r = reveal || {};
@@ -2558,7 +2578,7 @@ function nextStage() {
 /* ------------------------------------------------------------
    Opening: Agni flies in, the plate unrolls, then stage one
    ------------------------------------------------------------ */
-function playIntro() {
+function playIntro(alreadyHere) {
   state.locked = true;
   restrictKeys([]);
 
@@ -2570,22 +2590,37 @@ function playIntro() {
   }
 
   panelPlate.classList.add('panel__plate--closed');
-  agniStand.classList.add('agni-stand--waiting');
-  agni.classList.add('agni--in', 'agni--flying');
-  playSfx('agniFly');            // wingbeats under the flight
 
-  setTimeout(() => {
+  /* `alreadyHere` is the opening: he is crossing the room under his own
+     animation, so there is no fly-in to run. He is left visible on the plate
+     rather than hidden until the sheet clears, and that is deliberate: the
+     plate layer is a crop of the panel asset from the asset's own plate edge,
+     which the dragon overlaps — so hiding `.agni-stand` does not hide him, it
+     leaves the right half of him drawn by the plate underneath. Half a dragon
+     is worse than two, and the panel is part of the screen being uncovered
+     anyway. */
+  if (!alreadyHere) {
+    agniStand.classList.add('agni-stand--waiting');
+    agni.classList.add('agni--in', 'agni--flying');
+    playSfx('agniFly');          // wingbeats under the flight
+    setTimeout(() => {
+      agniStand.classList.remove('agni-stand--waiting');
+      agni.classList.remove('agni--flying');
+    }, INTRO.landAt);
+  } else {
     agniStand.classList.remove('agni-stand--waiting');
-    agni.classList.remove('agni--flying');
-  }, INTRO.landAt);
+  }
 
+  /* With no flight to wait out, the plate unrolls almost at once — otherwise
+     the reveal is followed by a second of nothing. */
+  const panelAt = alreadyHere ? 300 : INTRO.panelAt;
   setTimeout(() => {
     panelPlate.classList.remove('panel__plate--closed');
     panelPlate.classList.add('panel__plate--open');
     playSfx('panelOpen');
-  }, INTRO.panelAt);
+  }, panelAt);
 
-  setTimeout(() => startStage(0), INTRO.typeAt);
+  setTimeout(() => startStage(0), panelAt + (INTRO.typeAt - INTRO.panelAt));
 }
 
 /* ------------------------------------------------------------
@@ -2675,10 +2710,46 @@ function init() {
 function awaitStart() {
   const go = () => {
     begin.hidden = true;
-    unlockVoice();          // room tone, and speech is allowed from here
-    playIntro();
+    unlockVoice();          // music, and speech is allowed from here
+    if (reduceMotion) { playIntro(); return; }
+    openWithFold();
   };
   begin.addEventListener('click', go, { once: true });
 }
+
+/* The opening: the page's corner turns over and the room is uncovered under it.
+
+   The treats go out at once, under the sheet, because they are what the fold has
+   to uncover — with an empty room underneath there is nothing to reveal.
+
+   The panel does not, and nothing is said, until the fold has finished. A line
+   arriving while the page is still turning is a line nobody reads, and the plate
+   unrolling behind a moving crease is two animations fighting for the same
+   attention. `talkAfter` is what holds the lesson back; `.stage--folding` holds
+   the plate. */
+function openWithFold() {
+  state.locked = true;
+  restrictKeys([]);
+  stage.classList.add('stage--folding');
+  panelPlate.classList.add('panel__plate--closed');
+  agniStand.classList.add('agni-stand--waiting');
+
+  cross.classList.add('cross--on');
+  playSfx('agniFly');
+  startStage(0, { after: 0, instant: true, talkAfter: INTRO.crossing });
+
+  setTimeout(() => {
+    cross.classList.remove('cross--on');
+    stage.classList.remove('stage--folding');
+    agniStand.classList.remove('agni-stand--waiting');
+    panelPlate.classList.remove('panel__plate--closed');
+    panelPlate.classList.add('panel__plate--open');
+    playSfx('panelOpen');
+  }, INTRO.crossing);
+}
+
+
+
+
 
 init();

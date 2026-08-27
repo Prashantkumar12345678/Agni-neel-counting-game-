@@ -300,7 +300,13 @@ html, body {
   transition: filter 220ms ease;
 }
 .treat--glow .treat__body > img {
-  filter: drop-shadow(0 0 8px rgba(255, 240, 205, 0.6)) brightness(1.035);
+  /* Stronger than it was: at an 8px spread and 60% the halo was invisible on a
+     bright treat — a yellow jelly against a warm cream glow showed nothing at
+     all, which is what "the jellies do not glow" meant. Still one shadow, since
+     counted treats now hold their glow and a whole packet's worth can be lit at
+     once. */
+  filter: drop-shadow(0 0 17px rgba(255, 242, 190, 0.92)) brightness(1.075)
+          saturate(1.06);
   animation: berry-pop 560ms cubic-bezier(0.25, 1.45, 0.4, 1) both;
 }
 
@@ -440,7 +446,8 @@ html, body {
 }
 .pack__cell.treat--glow {
   z-index: 2;
-  filter: drop-shadow(0 0 7px rgba(255, 240, 205, 0.62)) brightness(1.035);
+  filter: drop-shadow(0 0 16px rgba(255, 242, 190, 0.9)) brightness(1.07)
+          saturate(1.05);
   animation: cell-pop 560ms cubic-bezier(0.25, 1.4, 0.4, 1) both;
 }
 
@@ -799,7 +806,7 @@ html, body {
   width: 324px; height: 105.1px;
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-digit);
-  font-size: 82px; line-height: 104px;
+  font-size: 94px; line-height: 104px;
   color: var(--ink);
   -webkit-text-stroke: var(--stroke-answer) var(--ink);
   transition: color 160ms ease, text-shadow 160ms ease;
@@ -964,6 +971,127 @@ html, body {
 .display__hit[hidden] { display: none; }
 
 /* ------------------------------------------------------------
+   The opening transition. Tapping play sends Agni across the room, corner to
+   corner, and the room is uncovered along a seam that runs off his tail.
+
+   The seam is perpendicular to his flight, and that is the whole trick: leaning
+   it the same way he flies — which is what the first attempt did — makes it
+   slide down his path instead of sweeping across it, and nothing reads as being
+   wiped. Every number here is worked out from his path: the veil's clip, the
+   bar's tilt and its travel all describe one moving line, 220px back up the
+   path from his centre, so the seam stays on his tail from end to end.
+   ------------------------------------------------------------ */
+.cross {
+  position: absolute; left: 0; top: 0;
+  width: 1920px; height: 1080px;
+  z-index: 18;
+  pointer-events: none;
+  visibility: hidden;
+}
+.cross--on { visibility: visible; }
+
+/* What the fold reveals. The sheet that used to cover the new screen is gone:
+   it was a copy of the room laid over the room, and re-rasterising a
+   full-screen image behind an animating clip held every frame at about 21ms —
+   the whole transition ran at three quarters speed because of it.
+
+   The room underneath is the same room. Only the treats and the answer plate
+   differ between the screen being left and the screen arriving, so those two are
+   clipped to the part the crease has passed and everything else simply stays put.
+   Same effect, a fraction of the paint. */
+/* Both of these are full-stage layers, which they have to be: `clip-path` is
+   relative to the element's own box, so a path describing the whole page only
+   lands correctly on an element that *is* the whole page. The plate is a
+   324 x 121 box inside the jar, hence the layer around it. */
+.answer-layer {
+  position: absolute; left: 0; top: 0;
+  width: 1920px; height: 1080px;
+  pointer-events: none;
+}
+.answer-layer .answer { pointer-events: auto; }
+
+.stage--folding .treats,
+.stage--folding .answer-layer {
+  animation: fold-reveal 6000ms linear both;
+  will-change: clip-path;
+}
+
+/* M L L L L C Z at every keyframe, and exact in both halves of the sweep: in
+   the first the ring points sit on the crease's own ends, in the second they
+   walk the page's corners. */
+@keyframes fold-reveal {
+  from { clip-path: path('M 0 1080 L 0 1080 L 0 1080 L 0 1080 L 0 1080 C 0 1080 0 1080 0 1080 Z'); }
+  50%  { clip-path: path('M 0 0 L 0 0 L 0 1080 L 1920 1080 L 1920 1080 C 1371.8 556.8 731.8 196.8 0 0 Z'); }
+  to   { clip-path: path('M 1920 0 L 0 0 L 0 1080 L 1920 1080 L 1920 0 C 1920 0 1920 0 1920 0 Z'); }
+}
+
+.cross__flap {
+  position: absolute; left: 0; top: 0;
+  width: 1920px; height: 1080px;
+  /* Two layers down the fold, away from the crease. On top a narrow specular
+     rim right at the crease, where the page bends and catches the light; under
+     it the body of the page's back, easing away and fading out at its far edge.
+     The rim stops the flap reading as a wedge of flat colour cut out with
+     scissors; the fade stops its far edge being a hard line. */
+  background:
+    linear-gradient(29.4deg,
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(255, 255, 255, 0.55) 1.2%,
+      rgba(255, 255, 255, 0)    4.5%),
+    linear-gradient(29.4deg,
+      rgba(250, 245, 255, 1)   0%,
+      rgba(236, 226, 249, 1)   14%,
+      rgba(213, 197, 239, 1)   36%,
+      rgba(186, 166, 221, 1)   60%,
+      rgba(160, 138, 199, 1)   82%,
+      rgba(147, 125, 188, 0.98) 93%,
+      rgba(150, 128, 190, 0)   100%);
+  /* One shadow and no mask. Both cost more than they were worth: with a mask
+     and two shadows over an animating clip-path on a full-screen element every
+     frame took about 21ms, so the whole thing ran at three quarters speed and
+     read as stuttering. `will-change` lets the browser prepare for the clip
+     changing rather than discovering it every frame. */
+  filter: drop-shadow(-12px 16px 22px rgba(9, 4, 20, 0.5));
+  will-change: clip-path;
+  clip-path: path('M 0 1080 C 0 1080 0 1080 0 1080 C 0 1080 0 1080 0 1080 C 0 1080 0 1080 0 1080 Z');
+}
+.cross--on .cross__flap {
+  animation: cross-flap 6000ms linear both;
+}
+
+/* The curl: the crease, out to the page's corner mirrored across it, and back.
+   M C C C Z at every keyframe. */
+@keyframes cross-flap {
+  from { clip-path: path('M 0 1080 C 0 1080 0 1080 0 1080 C 0 1080 0 1080 0 1080 C 0 1080 0 1080 0 1080 Z'); }
+  50%  { clip-path: path('M 0 0 C 731.8 196.8 1371.8 556.8 1920 1080 C 1686.1 473.2 1353.8 -73.7 923 -560.8 C 581.7 -429.3 274 -242.3 0 0 Z'); }
+  to   { clip-path: path('M 1920 0 C 1920 0 1920 0 1920 0 C 1920 0 1920 0 1920 0 C 1920 0 1920 0 1920 0 Z'); }
+}
+
+.cross__agni {
+  /* His centre rides the crease's midpoint, a fixed 150px ahead of it along
+     the diagonal — so his tail stays on the curl from one end to the other.
+     The fold runs bottom-left to top-right now, and he flies with it. */
+  position: absolute; left: -84px; top: 838px;
+  width: 430px; height: 337px;
+  /* Thrown up-left, back along the way he came. */
+  filter: drop-shadow(-38px 26px 32px rgba(255, 210, 130, 0.85))
+          drop-shadow(-104px 74px 78px rgba(255, 190, 120, 0.42));
+}
+.cross--on .cross__agni {
+  animation: cross-fly 6000ms linear both;
+}
+
+@keyframes cross-fly {
+  from { transform: translate(0, 0) rotate(-20deg); }
+  to   { transform: translate(1920px, -1080px) rotate(-24deg); }
+}
+
+/* While the page is turning, the panel is not on it. Nothing is said until the
+   fold is finished either — a line that arrives mid-transition is a line nobody
+   reads. */
+.stage--folding .panel { opacity: 0; }
+
+/* ------------------------------------------------------------
    The start gate. One tap before anything happens, because that is what a
    browser requires before it will play a sound — and the intro is the one
    moment with a cue of its own to lose.
@@ -1026,4 +1154,7 @@ html, body {
   .answer { transition: none; }
   .panel__caret, .panel__text--wipe .panel__typed { animation: none; }
   .begin__pill { animation: none; }
+  /* No fly-past: the veil simply goes. */
+  .cross--on .cross__agni, .cross--on .cross__flap,
+  .stage--folding .treats, .stage--folding .answer-layer { animation: none; }
 }

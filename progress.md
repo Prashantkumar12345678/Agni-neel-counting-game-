@@ -1228,3 +1228,313 @@ settle at -63 and stay, while the one being counted passes through -111 to -120.
 By the sixth number all six are held at -63. The shadows stay on the floor
 under them, which is what makes the lift read as a lift.
 
+## The supplied music, the opening flicker, and a transition with a tail
+
+**The music** is `BG  music.mp3` from the sfx folder, at 0.15 — it plays behind
+a voice counting, so it stays out of the way. The filename has spaces in it, so
+the URL is encoded. `room-tone.wav`, the bed I synthesised before it, is left in
+the folder unreferenced.
+
+**The flicker at the start** was the stage's own line being replaced 340ms after
+it went up: long enough to see, far too short to read. Lengthening the gap to
+1100ms so it could be read was the wrong answer — asked again, the line should
+not be there at all. It is skipped now whenever the first thing Agni says will
+replace it, which is most stages: the tutorial opens straight on "Let us count
+these treats together" rather than showing "Count the Treats Together" first and
+swapping it. The two say the same thing and the spoken one belongs to the
+moment. The stage's line still serves as what the plate falls back to while the
+child is thinking and after a wrong answer, so nothing is lost from the script
+except the duplicate.
+
+Stages whose first spoken line is unwritten — Transition 1 and 2 — still put
+their own line up, and nothing replaces it, so there is no flash there either.
+With no line to read before the voice, the gap is back down to 450ms.
+
+The cost, stated plainly: Level 4's script lists "Count all the treats." in its
+on-screen column and that line no longer appears, because its first spoken line
+covers the same ground. "Write the number on the jar." still appears at its
+moment.
+
+**The opening transition.** Tapping play sends Agni across the room, from off
+the top-left corner to off the bottom-right, and a veil is wiped away along the
+line he flies — so the room appears behind his tail instead of being cut to. The
+wipe is two four-point parallelograms interpolating, which is what makes its
+leading edge lean with his flight rather than falling like a vertical curtain,
+and his glow is thrown up-left, back along the path he came down.
+
+He is in the room by the end of it, so the intro that follows skips its own
+fly-in — two flights in four seconds is one flight too many — and the plate
+unrolls 300ms later instead of waiting out a flight that is not happening. His
+wingbeats play over the crossing, which is the cue that flight always wanted.
+
+The first version of the wipe was wrong in a way worth writing down: its edge
+leaned the same way Agni flew, so it slid *down* his path rather than sweeping
+*across* it, and there was no seam to see at the boundary anyway — the reveal
+read as the room fading up, not as being wiped.
+
+The edge is now perpendicular to his flight, and every number describing it is
+worked out from his path rather than eyeballed: his travel is (2420, 1440) from
+(-250, -180), so the unit along it is (0.859, 0.511), the perpendicular is
+(-0.511, 0.859), and the line's slope is -0.595 px per px — a bar tilted 30.75
+degrees. The line is held 220px back up the path from his centre, and the veil's
+clip polygon, the bar's tilt and the bar's 3277px of travel all describe that
+same moving line, so the seam sits on his tail from one end to the other.
+
+The seam is a long bar with a bright core fading either side, so the boundary is
+something you watch being drawn. He is drawn 430 x 337 rather than 300 x 235,
+and the crossing takes 2400ms rather than 1450 — at the shorter time it was over
+before it read as anything.
+
+The transition then became a fold, and three things had to change for it to read
+as one.
+
+The sheet is no longer a purple curtain in front of the game — it is a copy of
+the screen being left behind, the same background and the same jar at the same
+coordinates. So the room runs straight across the seam and only the things that
+actually changed appear from under it: the plate unrolled, the treats out. A
+flat sheet lifting off read as a loading screen, not as a page turning.
+
+Which means the game has to be assembled *underneath* it. `playIntro()` now runs
+at the start of the crossing rather than after it, so by the time the fold has
+travelled a third of the way the new screen is already there to be uncovered.
+
+And the standing dragon has to stay hidden until the sheet clears, or he is on
+the plate talking while a second copy of him is still in the air. Measured: his
+layer holds at opacity 0 for the whole crossing and comes up at 3.5s, after the
+sheet has gone.
+
+The seam itself is now a fold rather than a bright line. Left to right, from the
+uncovered room into the sheet: light spilling onto the floor, the crease
+catching it, the pale underside of the flap turning over, that curving away into
+shadow, and the shadow it casts on the sheet below. 210px wide where the line
+was 78.
+
+Two bugs found while doing it, both mine, both the same shape — an edit that
+reported success without applying:
+
+`INTRO.crossing` was still 1450 while the stylesheet ran 3000, because the edit
+that should have changed it sat after a line that threw. The sheet was being
+taken away at 60% of the roll. It is one number governing when the sheet is
+removed and it has to match the CSS durations, which the comment now says.
+
+And `awaitStart()` ended up defined twice — the new one and the original — so
+the *later* declaration won and the old flow ran, quietly, while the new code
+sat above it unused. Worth remembering: a duplicate function declaration in a
+classic script is silent, and the one that wins is the last one parsed.
+
+The fold became a page curl, which is a different thing and needed the shading
+put in the right order. Going from the part already uncovered towards the part
+still covered: the shadow the curl throws onto what it has just uncovered, then
+the curl itself — and we are looking at the *back* of the page, so it is pale,
+dark at its free edge where it turns away from the light and brightest along the
+top of the roll — and then the crease, where the page leaves the flat. The first
+version had the pale side on the sheet's side of the crease, which is why it
+read as a bright line sliding over the sheet instead of the sheet lifting off.
+The curl also lies over what it has uncovered, because that is what a page does
+when it curls back across itself.
+
+It is clipped to a very long ellipse, so the roll is fat in the middle and comes
+to a point at each end — which is what a page peeled diagonally across a
+rectangle looks like, and what a constant-width bar never could be. Near the
+ends the page is still attached and the crease runs on alone.
+
+Two more of my own bugs on the way:
+
+`playIntro()` ended up defined twice, the same trap as `awaitStart()` earlier:
+slicing a block out and inserting a new one leaves the old copy, the later
+declaration wins, and nothing complains. Both duplicates are gone.
+
+And hiding `.agni-stand` during the crossing did not hide the dragon — it left
+the *right half* of him on screen. The plate layer is a crop of the panel asset
+from the asset's own plate edge at x 107, and the dragon overlaps the plate up
+to about x 160, so the plate draws part of him whatever `.agni-stand` does.
+Half a dragon is worse than two, so he stays visible: the panel is part of the
+screen being uncovered anyway.
+
+Comparing it against the reference showed the remaining difference plainly: mine
+was a bar of constant length crossing the page, and a corner peel's crease is
+*short* at the corner. Lift a page by its corner and only a small triangle turns
+back; carry the peel to the middle and the crease spans the whole diagonal;
+carry it on and it shrinks into the far corner. So the roll now grows and
+shrinks as it travels — scaleY 0.13 to 1 and back, applied after the rotate so
+it stretches along the crease rather than across the page.
+
+What is still not the reference: its flap is a triangle with a curved hypotenuse
+coming to a sharp tip, and mine is a lens. That silhouette is the reflection of
+the cut-off corner across the crease, which is a triangle only while the crease
+cuts two *adjacent* edges — up to s = 530 of a 2203px diagonal here, about a
+quarter of the way. Past that the cut region gains a vertex and the flap stops
+being a triangle, which is why full-page peels are modelled as a cylinder in the
+middle. The growing-and-shrinking roll is that cylinder with the corner
+behaviour at both ends.
+
+## The gap between the roll and the edge it lies on
+
+A frame mid-transition showed the instruction plate cut in two: the half with the
+text revealed, and the rest of it — a bare light slab with its gold border —
+sitting to the right of the roll where the sheet should still have been covering
+it.
+
+The roll and the sheet's edge had come apart. They are meant to describe one
+moving line, and they did, until the roll gained middle keyframes for its
+growing and shrinking. CSS applies a timing function *per segment*, not across
+the whole animation: the moment the roll had four segments and the sheet had
+one, their progress curves stopped matching, and a gap opened between the roll
+and the edge it is supposed to be lying on. The room showed through it early —
+which is what that slab was, the plate's own right end.
+
+All three animations are `linear` now, so the sheet, the roll and Agni share one
+clock whatever keyframes each of them has. Measured at four instants: the roll's
+centre and the sheet's clip edge agree to within a pixel.
+
+Worth keeping in mind generally: an easing curve only holds several animations
+together while they all have the same number of segments.
+
+## Not a roll — a corner
+
+The roll went in the end, because a roll is not what was asked for. What is
+wanted is the corner of the page turning over, and nothing else.
+
+Worked out on paper first rather than tuned by eye. The crease keeps one
+direction — parallel to the page's anti-diagonal — and slides out from the
+top-left corner, so the folded corner is always the same shape. Parametrised by
+`a`, the crease runs from (a, 0) on the top edge to (0, a*k) on the left with
+k = H/W:
+
+  a = 0     nothing folded
+  a = W     the crease is the diagonal, exactly half the page folded over
+  a = 2W    the crease has reached the far corner, the whole page folded away
+
+Two shapes come out of that. What is still covered, written as a five-point
+polygon so one point count carries it from the full rectangle through the
+diagonal triangle down to nothing. And the flap: the two ends of the crease plus
+the page's corner mirrored across it — (923, 1641) at the half-way point — which
+lands on the part still covered, which is where a folded corner lands.
+
+Three keyframes each, and both linear, so they stay on the same crease. The flap
+is shaded down the fold, away from the crease: near-white where the page turns,
+easing to a mid purple at the tip, with a shadow along the crease where the
+lifted corner hangs over the rest. The first attempt ran that gradient down to
+near-black, which made it a shadow wedge rather than the back of a page.
+
+## Three refinements, and the duplicate-definition trap for the third time
+
+**Nothing is said until the fold is finished.** The treats still go out at once,
+under the sheet, because they are what the fold has to uncover — an empty room
+underneath gives it nothing to reveal. But the panel is held out of sight
+(`.stage--folding`) and the lesson is held back (`talkAfter`), so the plate
+unrolls and the first line arrives only once the page has turned. Measured:
+panel opacity 0 and no spoken line for the whole six seconds, the plate at
+6.5s, the first line at 7.3s.
+
+**Agni's tail is on the crease.** His centre now runs 150px ahead of the crease
+along his flight, so the fold trails from his tail rather than passing through
+his middle.
+
+**The flap no longer looks cut out.** Two gradient layers down the fold rather
+than one: a narrow specular rim right at the crease where the page bends and
+catches the light, over the body of the page's back easing away. The far edge is
+feathered by a mask, and there are two shadows — a tight one for contact along
+the crease and a wide soft one for the lift, which is what reads as thickness.
+
+And the reason the first two of those appeared not to work: `script.js` had
+picked up **duplicate top-level definitions** — `playIntro`, `awaitStart`,
+`bindKeypad`, `flashKey`, `bindKeyboard`, `initVoice` and `init`, several of them
+three times over. In a classic script the last declaration silently wins, so the
+stale copies were the ones running while every fix went into the first copy.
+Twelve duplicates removed, and the file now defines each of its 91 functions
+once.
+
+This is the third time this session that a slice-and-insert edit has left a
+stale copy behind and cost a round of debugging. The tell is a fix that measures
+as having no effect at all; the check is `grep -c '^function name'` before
+believing it.
+
+## A curved crease
+
+A folded corner has a straight crease; a *curled* one has an arc, and that is
+the difference between the two mockups. Polygons cannot bend, so both shapes are
+`clip-path: path()` now. Paths interpolate when their commands match, so every
+keyframe is written with the same commands — M L L L L C Z for the covered page,
+M C C C Z for the curl — and only the numbers move. They are generated from the
+geometry rather than typed: crease ends on the page's edges, the arc's control
+points at a depth of 8.5% of the crease's length, and the curl's far point the
+page's corner mirrored across the crease.
+
+One bug in the first generated version: I emitted the crease before the page's
+edges, which gave a self-intersecting outline. The covered page has to be traced
+from the crease's top end round the edges and *back* along the crease, with the
+arc's control points reversed for the return.
+
+Agni now rides the crease instead of having a path of his own. Its midpoint runs
+the diagonal from (0, 0) to (1920, 1080), so his centre runs that line offset by
+a fixed 150px lead — which keeps his tail on the curl the whole way. With his
+own path he started 250px ahead of the crease and finished 250px behind it,
+drifting right across it in the middle.
+
+## Making it smooth, and four smaller things
+
+**The stutter was dropped frames, and the sheet was causing them.** Measured
+frame-to-frame through the transition: median 20.8ms with a 77ms hitch and two
+frames over 33ms. The fix was to stop doing the expensive thing rather than to
+tune it — the sheet was a copy of the room laid *over* the room, a 1920 x 1080
+image plus the jar re-rasterised behind an animating clip every frame.
+
+The room underneath is the same room: the background sits outside `.world` and
+never moves, and the jar is in both screens. Only the treats and the answer plate
+differ between the screen being left and the one arriving. So the sheet is gone
+and those two are clipped to the part the crease has passed instead. Same effect,
+a fraction of the paint: worst frame 23.9ms, and zero dropped frames.
+
+A control run matters here — an empty page with a trivial transform animation
+measures the same 20.8ms median in this browser, so 20.8ms is the frame interval
+available (about 48Hz), not our cost. The transition now hits every frame
+offered. Dropping the flap's mask and one of its two shadows, and adding
+`will-change: clip-path`, tightened the tail (p99 26.2 to 22.7ms) but moved the
+median not at all — worth knowing which of those changes did the work.
+
+**`clip-path` is relative to the element's own box.** The plate was left visible
+through the whole fold because the path describing the page was applied to a
+324 x 121 element sitting in the jar, where it landed nowhere near. `.treats` was
+fine only because it happens to be a full-stage layer. The plate now has one too.
+
+**The counted glow was invisible on bright treats.** An 8px spread at 60% warm
+cream over a yellow jelly showed nothing, which is what "the jellies do not glow"
+meant — they were glowing, and a 32-second trace proves the loose ones are all
+lit in turn, but not visibly. 17px at 92% with a brightness and saturation lift
+now reads clearly against an unlit neighbour. Still one shadow, because counted
+treats hold their glow and a whole packet's worth can be lit at once.
+
+**The answer text is 94px** rather than 82, and **backspace has a sound** — the
+key cue pitched down to 0.66, so a digit going in and a digit coming back out are
+the same sound heard in opposite directions. It had none at all before.
+
+A correction: I reported the backspace sound as done a round earlier when it was
+not. The edit that added it sat after a failing assertion in the same script, so
+the file was never written, and I said it was done on the strength of the script
+having been run rather than of the change being in the file. Hooking
+`HTMLMediaElement.play` and pressing the key showed one cue where there should
+have been two. Same lesson as the duplicate definitions: verify the effect, not
+the attempt.
+
+## The fold flipped: bottom-left to top-right
+
+Same construction, re-derived for the other corner rather than mirrored by hand.
+The crease keeps one direction — parallel to the main diagonal now — and slides
+out from (0, 1080); its ends run up the left edge and along the bottom while
+a < W, then along the top edge and up the right. The mirror is across
+`y - kx - (H - ak) = 0`, and past half-way the flap shrinks toward (W, 0), the
+far corner, which is the same handover the top-left version made at (W, H).
+
+Everything that follows from the direction followed it: the flap's shading angle
+(150.6 to 29.4 degrees, still straight down the fold), the flap's and Agni's
+shadows now falling down-left rather than up-left because that is the way he came
+from, his rotation, and his path — bottom-left to top-right, still riding the
+crease's midpoint 150px ahead of it.
+
+Getting the far corner wrong the first time put the flap's tip at (1846, -2202)
+in the closing keyframe, which had the curl swelling off the top of the screen
+instead of shrinking into the corner. Worth checking the degenerate keyframes of
+a generated shape: both ends should collapse to a point, and if they do not the
+arithmetic is wrong somewhere in the middle too.
+

@@ -69,12 +69,18 @@
 
         <!-- Answer panel (190:516). Waits centred in the jar; tapping it lifts
              the panel to its design spot and opens the pad underneath. -->
+        <!-- A full-stage layer around the plate, so the fold's reveal can be
+             clipped in stage coordinates. `clip-path` is relative to the
+             element's own box, and the plate is a 324 x 121 box in the jar —
+             the path meant for the whole page landed nowhere near it. -->
+        <div class="answer-layer">
         <div class="answer" id="answer">
           <div class="display" aria-hidden="true">
             <img src="Assets/answer box 2.png" alt="" />
           </div>
           <output class="display__value" id="displayValue" aria-live="polite" aria-label="Your answer"></output>
           <button class="display__hit" id="displayHit" type="button" aria-label="Open the number pad"></button>
+        </div>
         </div>
 
         <!-- Hand nudge: guides the child through the activity. `hand.webp` is
@@ -101,6 +107,14 @@
              every cue in the intro came back NotAllowedError, Agni's wingbeats
              included. So the intro waits for one tap, which is also what lets
              his voice speak. -->
+        <!-- The play button hands over to Agni: he crosses from the top-left
+             corner to the bottom-right, and the room is revealed behind him.
+             Outside .world, so the camera never carries it. -->
+        <div class="cross" id="cross" aria-hidden="true">
+          <span class="cross__flap"></span>
+          <img class="cross__agni" src="Assets/agni fly gif.gif" alt="" />
+        </div>
+
         <button class="begin" id="begin" type="button">
           <span class="begin__pill">Tap to play</span>
         </button>
