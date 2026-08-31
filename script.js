@@ -1810,7 +1810,7 @@ function playWin() {
         stage.classList.add('stage--closing');
         showOst(currentStage().ost.success);
         sayAll(currentStage().successVo, () => {
-          setTimeout(nextStage, FLOW.beforeNextStage);
+          setTimeout(() => haulJarAway(nextStage), FLOW.beforeNextStage);
         });
         stage.dispatchEvent(new CustomEvent('roundcomplete', {
           detail: { stage: currentStage().id, answer: state.answer }
@@ -1818,6 +1818,20 @@ function playWin() {
       }, WIN.sparkleAfter);
     }, flightMs + WIN.lidAfter);
   }, WIN.flyAt);
+}
+
+/* Agni comes back for the packed jar and carries it out past the top-right
+   corner — the way he left at the start. The class is taken off in startStage
+   rather than here, so the jar does not snap back into an empty room while the
+   camera is still travelling: by the time it is removed the next stage is being
+   built off frame. */
+const HAUL_MS = 2200;
+
+function haulJarAway(done) {
+  if (reduceMotion) { done(); return; }
+  stage.classList.add('stage--hauling');
+  playSfx('agniFly');
+  setTimeout(done, HAUL_MS);
 }
 
 function handleKey(type, value) {
@@ -2533,7 +2547,7 @@ function startStage(index, reveal) {
   jarLid.classList.remove('jar-lid--on');
   sparkles.classList.remove('sparkles--on');
   sparkles.innerHTML = '';
-  stage.classList.remove('stage--clearing', 'stage--closing');
+  stage.classList.remove('stage--clearing', 'stage--closing', 'stage--hauling');
   answerPanel.classList.remove('answer--wiggle');
   displayHit.hidden = true;
   displayPanel.classList.remove('display--hint');

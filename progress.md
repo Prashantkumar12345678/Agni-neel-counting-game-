@@ -1691,3 +1691,69 @@ Traced afterwards over the whole 900ms: `jar-rock` present for eight samples
 then gone, and the jar's transform passes cos 0.9956, 0.9978, 0.9987, 0.9996 —
 which is 5.4, 4.4, 2.9 and 1.7 degrees, every keyframe as written.
 
+## Agni carries the packed jar away
+
+The transition between stages was a camera pan with nothing happening in it.
+Now, once the jar is sealed and the closing line is said, Agni flies back down
+to it, takes hold, and carries it out past the top-right corner — the way he
+left at the start — and the camera then moves to the next table. It is the
+story's own logic: he is stocking the pantry.
+
+He is drawn 520 x 407 for this, against the 430 x 337 of the one who crosses at
+the opening: he is doing the lifting, so he is nearer.
+
+The jar does not travel alone. Its cap, the treats inside it, and the sparkle
+layer all get the same animation, and the floor shadow fades as it leaves the
+ground. That is easy here in a way the wrong-answer rock was not: a haul is a
+*translation*, and a translation needs no shared pivot, so each element can
+simply be handed the same one. Their keyframes start the move at the same
+percentage as his and everything runs linear — the lesson from the page curl,
+where an eased animation with a different number of keyframes drifted out of
+step with the one it was supposed to be locked to.
+
+The class comes off in `startStage`, not when the haul ends, so the jar cannot
+snap back into an empty room while the camera is still travelling: by the time
+it is removed the next stage is being built off frame.
+
+On the last stage the jar is carried off and nothing follows it, since there is
+still no end screen. That reads as an ending of sorts, but it is the gap the
+checklist review flagged, not a design.
+
+Two corrections to the haul.
+
+The cap was coming off in flight. `.jar-lid` is `opacity: 0` at rest and only
+visible because `lid-drop` fills it — so giving the lid the haul animation
+replaced that fill and took the cap straight back to invisible. It has its own
+copy of the haul keyframes now, holding `opacity: 1` throughout. A reminder that
+replacing `animation` on an element replaces whatever was holding its filled
+state, and if the base rule is a hidden state, the element disappears.
+
+And he takes the jar from its left shoulder now rather than its right, entering
+from off the left and leaving the way he came. He is mirrored with `scaleX(-1)`
+applied after the rotate, so the flip is about his own centre and the travel
+stays in the parent's frame.
+
+He now enters from off the left at the room's own height rather than dropping in
+from the top corner — he flies across the floor, which is where a small dragon
+carrying a jar belongs — and leaves the way he came, rising a little.
+
+And the room holds nothing but the jar while he does it. The closing line has
+been read by then, and the plate coming back for it was one more thing to look
+at while the jar was being carried out. The rule needs two classes
+(`.stage--hauling.stage--closing .panel`) to outweigh the one that brings the
+panel back for the closing line — a single-class rule lost to it silently.
+
+He was flying in backwards. The mirror was right when he entered from the top
+corner and left immediately, but once he came in from the left flying rightwards
+it made him face away from his own direction of travel.
+
+The mirror is gone entirely now, because the haul became one crossing: in from
+off the left at the room's own height, the jar's left shoulder taken in passing,
+and straight on out past the top-right corner — the way he left at the opening.
+The art faces right and so does he, start to finish, and no turn is needed. His
+glow trails behind him from a single negative x offset.
+
+Two goes at the exit direction, and the second one is simpler than the first:
+continuing in the direction he arrived removed the flip, the squash, and the
+pivot keyframes along with it.
+

@@ -596,6 +596,98 @@ html, body {
    over the neck.
    ------------------------------------------------------------ */
 /* ------------------------------------------------------------
+   Carrying the packed jar away.
+
+   Agni flies down to the sealed jar, takes it, and carries it out past the
+   top-right corner — the same way he left at the start. The jar, its cap, the
+   treats inside it and the sparkle layer all travel with him: the haul is a
+   translation, and a translation needs no shared pivot, so each of them can
+   simply be given the same one.
+
+   Their keyframes start the move at the same percentage as his and both run
+   linear, which is what keeps them together — the same lesson as the page
+   curl's crease, where an eased animation with different keyframe counts
+   drifted apart.
+   ------------------------------------------------------------ */
+.haul {
+  /* Beside the jar's left shoulder, and mirrored: he comes in from the left,
+     takes it from that side, and leaves the way he came. */
+  position: absolute; left: 1006px; top: 118px;
+  width: 520px; height: 407px;      /* the crossing dragon is 430 x 337 */
+  z-index: 6;
+  opacity: 0;
+  pointer-events: none;
+  /* Trailing behind him: negative while he faces right, and the mirror on the
+     way out carries it round to the other side by itself. */
+  filter: drop-shadow(-30px 10px 26px rgba(255, 210, 130, 0.6));
+}
+
+.stage--hauling .haul {
+  opacity: 1;
+  animation: haul-fly 2200ms linear both;
+}
+
+/* One crossing, left to right. He flies in from off the left at the room's own
+   height, takes the jar's left shoulder in passing, and carries straight on out
+   past the top-right corner — the way he left at the opening.
+
+   No mirror anywhere now: the art faces right and so does he, the whole way.
+   Turning him round to exit left was what made him fly in backwards, and
+   carrying on in the direction he arrived needs no turn at all. */
+@keyframes haul-fly {
+  0%   { transform: translate(-1580px, 220px) rotate(4deg); }
+  34%  { transform: translate(-150px, 74px)   rotate(2deg); }
+  50%  { transform: translate(0, 34px)        rotate(0deg); }
+  58%  { transform: translate(0, 0)           rotate(-2deg); }
+  100% { transform: translate(1180px, -700px) rotate(-9deg); }
+}
+
+/* Everything that is part of the packed jar goes with him. */
+.stage--hauling .jar,
+.stage--hauling .treats,
+.stage--hauling .sparkles {
+  animation: haul-jar 2200ms linear both;
+}
+
+@keyframes haul-jar {
+  0%, 58% { transform: translate(0, 0); }
+  100%    { transform: translate(1180px, -700px); }
+}
+
+/* The cap needs its own copy of that, holding opacity. `.jar-lid` is
+   `opacity: 0` at rest and only visible because `lid-drop` fills it — so
+   replacing its animation with the haul took the cap off the jar mid-flight. */
+.stage--hauling .jar-lid {
+  animation: haul-lid 2200ms linear both;
+}
+
+@keyframes haul-lid {
+  0%, 58% { opacity: 1; transform: translate(0, 0); }
+  100%    { opacity: 1; transform: translate(1180px, -700px); }
+}
+
+/* When he comes for it, the room holds nothing but the jar. The closing line
+   has been read by then, and the plate coming back for it would be one more
+   thing to look at while the jar is being carried out. Two classes, so this
+   outweighs the rule that brings the panel back for the closing line. */
+.stage--hauling.stage--closing .panel,
+.stage--hauling .panel {
+  opacity: 0;
+  transition: opacity 260ms ease;
+}
+
+/* Off the floor, so the shadow it was casting goes. */
+.stage--hauling .jar-shade {
+  animation: haul-shade 2200ms linear both;
+}
+
+@keyframes haul-shade {
+  0%, 52% { opacity: 1; }
+  76%     { opacity: 0; }
+  100%    { opacity: 0; }
+}
+
+/* ------------------------------------------------------------
    Sparkle — the script's correct-feedback row asks for one on the
    closed jar. Sits above the jar and the cap, below the hand.
    ------------------------------------------------------------ */
@@ -1208,6 +1300,10 @@ html, body {
   .world, .world--out, .world--in { transition: none; }
   .answer { transition: none; }
   .panel__caret, .panel__text--wipe .panel__typed { animation: none; }
+  /* No haul: the jar simply is not there for the next stage. */
+  .stage--hauling .haul, .stage--hauling .jar, .stage--hauling .jar-lid,
+  .stage--hauling .treats, .stage--hauling .sparkles,
+  .stage--hauling .jar-shade { animation: none; }
   .begin__pill { animation: none; }
   /* No fly-past: the veil simply goes. */
   .cross--on .cross__agni, .cross--on .cross__flap,
