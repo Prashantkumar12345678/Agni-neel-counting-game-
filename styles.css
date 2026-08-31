@@ -214,9 +214,15 @@ html, body {
   position: absolute;
   left: 50%;
   top: calc(50% + var(--inkh, 0.8) * 50%);
-  width: calc(var(--ink, 0.8) * 86%);
-  height: calc(var(--ink, 0.8) * 23%);
-  transform: translate(-46%, -38%) rotate(calc(var(--treat-rot, 0deg) * -1));
+  width: calc(var(--ink, 0.8) * 94%);
+  height: calc(var(--ink, 0.8) * 19%);
+  /* Lifted so it straddles the base rather than hanging below it. At -38% the
+     ellipse's dark centre sat clear of the treat with a gap of floor showing
+     between them, which read as a second thing lying underneath rather than as
+     a shadow. Two thirds of it is behind the treat now, and only the spread
+     shows. Barely off-centre: a bigger offset reads as detachment at this
+     size. */
+  transform: translate(-49%, -64%) rotate(calc(var(--treat-rot, 0deg) * -1));
   border-radius: 50%;
   /* Darker than it was: at 0.6 the treats still read as hovering just above
      the stone. The core is what does the work — a shadow that is only a haze
@@ -348,15 +354,6 @@ html, body {
   20%      { transform: rotate(-7deg) scale(1.07); }
   45%      { transform: rotate(6deg) scale(1.05); }
   70%      { transform: rotate(-4deg) scale(1.06); }
-}
-
-/* Wrong answer: "the spooky treats wiggle" */
-.treat--wiggle .treat__body > img { animation: treat-wiggle 420ms ease-in-out; }
-
-@keyframes treat-wiggle {
-  0%, 100% { transform: translateX(0); }
-  25%      { transform: translateX(-7px) rotate(-3deg); }
-  75%      { transform: translateX(7px) rotate(3deg); }
 }
 
 /* Right answer: every treat arcs up, over the rim and down into the jar.
@@ -513,6 +510,9 @@ html, body {
   width: 573px; height: 835px;
   object-fit: fill;
   opacity: var(--jar-opacity);
+  /* It rocks about its base, not its middle: a jar standing on a floor pivots
+     where it meets the floor. */
+  transform-origin: 50% 96%;
 }
 
 /* The jar stands on the same floor. Its base is a rounded bowl that meets the
@@ -532,6 +532,54 @@ html, body {
   background: radial-gradient(closest-side,
     rgba(12, 4, 24, 0.72), rgba(12, 4, 24, 0.4) 50%, rgba(12, 4, 24, 0) 100%);
   pointer-events: none;
+}
+
+/* Wrong answer: the jar rocks. It is the thing being filled, so it is the thing
+   that reacts — and it is the only thing that moves, which is why the treats no
+   longer wiggle and the typed number no longer shakes. Two small rocks that
+   settle, not a shudder: this is "not yet", not "wrong". */
+/* The rock, as one angle shared by the jar and everything mounted on it. A
+   registered property is what makes an angle animatable; each element below
+   applies it about the jar's base, expressed in its own box, so they turn
+   together as one rigid piece.
+
+   Rocking the jar image on its own could not go much past 3 degrees, because
+   the plate and the pad are its siblings rather than its children and stayed
+   behind while the glass leant away from them. With all of them on the same
+   pivot the rock can be as large as it wants: 5.4 degrees here. */
+@property --rock {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 0deg;
+}
+
+.stage--rocking { animation: jar-rock 900ms cubic-bezier(0.3, 0.8, 0.35, 1) both; }
+
+@keyframes jar-rock {
+  0%, 100% { --rock: 0deg; }
+  13%      { --rock: -5.4deg; }
+  34%      { --rock: 4.4deg; }
+  54%      { --rock: -2.9deg; }
+  72%      { --rock: 1.7deg; }
+  88%      { --rock: -0.7deg; }
+}
+
+/* The jar's base is at (1528.5, 993.6) on the stage; every one of these turns about
+   that point, each expressing it in its own coordinates. */
+.stage--rocking .jar,
+.stage--rocking .sparkles { transform: rotate(var(--rock)); }
+.stage--rocking .keypad,
+.stage--rocking .keys {
+  transform: rotate(var(--rock));
+  transform-origin: 177.5px 454.6px;
+}
+.stage--rocking .answer-layer {
+  transform: rotate(var(--rock));
+  transform-origin: 1528.5px 993.6px;
+}
+.stage--rocking .jar-lid {
+  transform: rotate(var(--rock));
+  transform-origin: 260.5px 824.2px;
 }
 
 /* ------------------------------------------------------------
@@ -812,7 +860,7 @@ html, body {
   transition: color 160ms ease, text-shadow 160ms ease;
 }
 .display__value--ok  { color: #0f7a2f; text-shadow: 0 0 18px rgba(47, 220, 106, 0.85); }
-.display__value--bad { color: #a3121b; animation: shake 340ms ease-in-out; }
+.display__value--bad { color: #a3121b; }
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
@@ -1096,13 +1144,18 @@ html, body {
    browser requires before it will play a sound — and the intro is the one
    moment with a cue of its own to lose.
    ------------------------------------------------------------ */
+/* The veil fills the screen but is not itself tappable — only the pill is. It
+   was a full-stage button, so a click anywhere on the game pressed Play, which
+   is how the music came on without anyone touching the button. The click still
+   reaches this element because the pill is inside it and the event bubbles. */
 .begin {
   position: absolute; left: 0; top: 0;
   width: 1920px; height: 1080px;
   border: 0; padding: 0;
   background: rgba(16, 6, 30, 0.42);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
+  cursor: default;
+  pointer-events: none;
   z-index: 20;
   -webkit-appearance: none; appearance: none;
 }
@@ -1119,6 +1172,8 @@ html, body {
   background: linear-gradient(to bottom, #b06ff0, #7a2ec4);
   box-shadow: 0 10px 0 rgba(40, 12, 62, 0.55), 0 0 34px rgba(180, 120, 255, 0.5);
   animation: begin-breathe 1700ms ease-in-out infinite;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 @keyframes begin-breathe {
@@ -1140,7 +1195,7 @@ html, body {
   .jar-lid--on { animation-duration: 1ms; }
   .stage--sleepy .treat--idle .treat__body,
   .keypad--opening, .keys--opening { animation: none; }
-  .treat--giggle .treat__body > img, .treat--wiggle .treat__body > img,
+  .treat--giggle .treat__body > img,
   .sparkles--on .sparkle, .pack--in, .pack--glow { animation: none; }
   .pack--waiting { opacity: 1; }
   .stage--sleepy .treat--idle .treat__lid, .pack__cell.treat--glow,
@@ -1148,7 +1203,7 @@ html, body {
   .hand--tap .hand__art, .hand--tap .hand__ripple,
   .hand--point .hand__art { animation: none; }
   .hand { transition: opacity 260ms ease; }
-  .display--hint, .answer--wiggle { animation: none; }
+  .display--hint, .answer--wiggle, .stage--rocking { animation: none; }
   /* No camera travel: cut straight to the next stage. */
   .world, .world--out, .world--in { transition: none; }
   .answer { transition: none; }

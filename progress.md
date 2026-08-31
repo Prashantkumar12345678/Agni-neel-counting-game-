@@ -1538,3 +1538,156 @@ instead of shrinking into the corner. Worth checking the degenerate keyframes of
 a generated shape: both ends should collapse to a point, and if they do not the
 arithmetic is wrong somewhere in the middle too.
 
+## Wrong answer: the jar rocks, and only the jar
+
+Seventy-nine treats wiggling in sequence was a lot of screen for "try again",
+and it pulled the eye away from the thing the child actually has to change. The
+jar is what is being filled, so the jar is what reacts: two small rocks that
+settle, about its base rather than its middle, because a jar standing on a floor
+pivots where it meets the floor.
+
+"Only" is taken literally — the treats no longer wiggle and the typed number no
+longer shakes either. Checked by walking the document for running animations at
+the moment of a wrong answer: `jar-wiggle` is the only one.
+
+The `treat--wiggle` rule and its keyframes are gone with the behaviour rather
+than left behind unused.
+
+## The tick clicks
+
+Every key on the pad clicked except the one that matters — the tick went
+straight to the verdict. It now clicks first, the key cue pitched up to 1.22
+where the back key is pitched down to 0.66: a digit in, a digit out, and a
+confirm. Verified by hooking the browser's audio: `key.ogg rate=1.22` then
+`wrong.ogg`.
+
+Still open from the checklist review, and not touched here: the end screen, the
+title screen, the red on a wrong answer (`#a3121b` — the colour, not the
+motion), and the hint arriving on the first wrong attempt rather than the second.
+
+## The music started without being asked
+
+`startRoomTone()` was being called from `unlockVoice()`, and `unlockVoice()` is
+bound to the first `pointerdown` or `keydown` *anywhere on the window*. So a key
+press, or a click on the letterbox bar beside the stage, had the music playing
+while the Play button was still up. The gate covers the stage, so a click inside
+it goes to Play — but the bars either side are not the stage, and a keystroke is
+not a click at all.
+
+The two jobs are now separate: `unlockVoice()` only lets speech through, which is
+what it needs the gesture for, and the music is started by the Play button
+itself. Measured on a viewport taller than the stage, so there are bars to click:
+nothing plays after load, after a key press, or after a click off-stage, and the
+music and Agni's wingbeats both start on Play.
+
+Moving the music off `unlockVoice()` was only half of it: `.begin` was a
+full-stage button, so a click *anywhere* on the game pressed Play. That is the
+rest of why the music seemed to start on its own — you did not have to touch the
+button to press it. The veil is now `pointer-events: none` and only the pill
+takes the click, which the click still reaches because the pill sits inside the
+button and the event bubbles. It is also what the checklist asks for: only the
+Play button on that screen is tappable.
+
+Measured with clicks at six points across the screen and a keystroke: all
+silent, gate still up. The pill starts the music and Agni's wingbeats and takes
+the gate away.
+
+## Voices with nobody clicking, and the same count twice over
+
+The report was a voice arriving without Play being pressed, counting "1 2 3 4 5
+6" doubled, over and over. Neither of the two earlier fixes touched it, because
+neither was the cause: the game is being served by VS Code's Live Server, which
+reloads the page on every save.
+
+`speechSynthesis` belongs to the browser, not to the page. Utterances already
+queued keep speaking straight through a reload or a navigation — so the page
+reloads, the new one puts its Play button up, and the old one's counting carries
+on behind it with nobody having clicked anything. Press Play and there are two
+counts running at once. Under a server that reloads on every file change that
+happens constantly, which is why it read as "again and again".
+
+`silence()` now clears the queue at three moments: when the page arrives, in
+case the page it replaced left something speaking; when the page leaves, on both
+`pagehide` and `beforeunload`; and whenever the tab goes hidden, since a tab
+nobody is looking at has no business talking. Coming back visible resumes the
+music, but only if the game had started.
+
+Measured: speaking through a reload while mid-sentence goes from `speaking=true`
+before to `false` at 150ms, 600ms and 1500ms after, with the gate back up.
+
+Worth remembering as a class of bug: anything held by the *browser* rather than
+the page — the speech queue, an AudioContext, a service worker — outlives a
+reload, and a live-reloading server turns that into a constant.
+
+## The voice with no server: it was my own test harness
+
+Reported next as counting heard with Live Server switched off entirely. The
+answer is embarrassing and worth writing down.
+
+These Playwright runs launch a real, visible Chrome on the machine. `playall.js`
+stubbed `say` and `sayAll` so a run would not wait out the narration — but it
+never stubbed `speakNumber`, which goes straight to the system's speech engine.
+So every run counted out loud through the speakers: six, then nine, then fifteen
+numbers and so on across seven stages, dozens of times over the session, and
+more than once with two runs going at the same time. That is exactly the
+"1 2 3 4 5 6, again and again, doubled" that was being reported, and it had
+nothing to do with the game.
+
+Every script in the harness now launches with `--mute-audio`, and every one
+injects `voiceReady = () => false` before the page's own script runs, so no
+utterance is handed to the engine at all. Verified: a full tutorial with the pad
+open hands the engine 0 utterances.
+
+The lesson is not about audio. Three rounds were spent fixing real bugs in the
+game — the window-wide gesture starting the music, the full-screen Play button,
+the speech queue surviving a reload — all of which were worth fixing, but none of
+which was the thing being heard. When a symptom survives every fix, the next
+question should be whether the observation and the code are even about the same
+process.
+
+The jar's rock was then increased twice. The first time only the glass moved,
+which put a ceiling on it: the plate and the pad are siblings of the jar image
+rather than children, so they stayed put and past about 3 degrees the glass
+visibly slid behind them.
+
+The second time removed the ceiling. The jar, its label, its pad, the sparkle
+layer and the cap now share one angle and each applies it about the *same world
+point* — the jar's base at (1528.5, 993.6) — expressed in its own coordinates.
+So the assembly turns as one rigid piece and the rock can be as large as it
+likes: 5.4 degrees over 900ms, where it started at 2.1 over 700.
+
+The angle is a registered custom property (`@property --rock`), which is what
+makes an angle animatable; one animation on the stage drives every element.
+Cheaper than a wrapper element, and it does not disturb the pad's own open
+animation, which owns `transform` only while it is opening.
+
+## A shadow that looked like a second object
+
+The treat shadow was sitting *below* the base rather than under it. Its top edge
+was placed at the drawing's base and then lifted by only 38% of its own height,
+so the dark centre of the ellipse fell clear of the treat with a strip of floor
+showing between the two — which is exactly what "it looks like there is
+something underneath it" describes. Seen at 3x on a single jelly it was
+unmistakable, and invisible at game size.
+
+It is lifted by 64% now, so two thirds of the ellipse is hidden behind the treat
+and only the spread shows, and it is wider and flatter (94% by 19% of the ink,
+from 86% by 23%). The horizontal offset came down from -46% to -49%: a light
+direction is worth having, but at this size a larger offset just reads as the
+shadow being a separate thing.
+
+The darkness the earlier round asked for is untouched. What was wrong was the
+placement, not the strength — and turning it down would have been the obvious
+wrong fix.
+
+A bug the measurement caught, which watching would not have: moving the rock
+onto the stage element meant listening for `animationend` there — and
+`animationend` bubbles. The listener heard the *panel's* text wipe finish first
+and took the rock off before it had run. Nothing was rocking at all, and a
+screenshot at the right moment would have looked merely subtle rather than
+broken. The handler now checks `e.animationName === 'jar-rock'`.
+
+Traced afterwards over the whole 900ms: `jar-rock` present for eight samples
+then gone, and the jar's transform passes cos 0.9956, 0.9978, 0.9987, 0.9996 —
+which is 5.4, 4.4, 2.9 and 1.7 degrees, every keyframe as written.
+

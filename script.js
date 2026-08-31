@@ -563,6 +563,7 @@ const displayPanel = document.querySelector('.display');
 const answerPanel = document.getElementById('answer');
 const hand = document.getElementById('hand');
 const jarLid = document.getElementById('jarLid');
+const jar = document.querySelector('.jar');
 const sparkles = document.getElementById('sparkles');
 const displayHit = document.getElementById('displayHit');
 const panelPlate = document.getElementById('panelPlate');
@@ -1278,6 +1279,14 @@ function pressSubmit() {
   if (state.locked || state.entry === '') return;
 
   handHide();
+  /* The tick clicks like every other key before it says anything. It used to
+     jump straight to the verdict, which left the one key that matters as the
+     only silent one on the pad. Pitched up, where the back key is pitched
+     down: in, out, and confirm. */
+  playSfx('key', 1.22);
+  /* Counting is over the moment the answer is in — anything still queued from it
+     would talk over the verdict. */
+  try { window.speechSynthesis.cancel(); } catch (err) { /* no engine */ }
   restrictKeys([]);                 // hands off while it is being judged
   const correct = Number(state.entry) === state.answer;
   state.locked = true;
@@ -1297,12 +1306,20 @@ function pressSubmit() {
     // "The spooky treats wiggle." — and the panel asks for another go.
     displayValue.classList.add('display__value--bad');
     playSfx('wrong');
-    treatsLayer.querySelectorAll('.treat').forEach((el, i) => {
-      setTimeout(() => {
-        el.classList.add('treat--wiggle');
-        el.addEventListener('animationend', () => el.classList.remove('treat--wiggle'), { once: true });
-      }, i * 55);
-    });
+    /* The jar rocks, and only the jar — but "the jar" means the glass with its
+       label and its pad, which are separate elements standing on it. They turn
+       together about its base, which is what lets the rock be big enough to
+       notice. The treats stay where they are. */
+    stage.classList.add('stage--rocking');
+    /* `animationend` bubbles, so a listener on the stage hears every animation
+       any descendant finishes — the panel's text wipe ended first and took the
+       rock off before it had run. It has to be the rock's own event. */
+    const rocked = (e) => {
+      if (e.animationName !== 'jar-rock') return;
+      stage.classList.remove('stage--rocking');
+      stage.removeEventListener('animationend', rocked);
+    };
+    stage.addEventListener('animationend', rocked);
     showOst('Count/Try Again!');
     state.wrong += 1;
     setTimeout(() => {
@@ -2011,8 +2028,11 @@ function speakNumber(n, hooks) {
 }
 
 /* Some browsers hold speech until the page has been interacted with. */
+/* Bound to the first pointerdown or keydown anywhere, which is why it must not
+   start the music: a key press, or a click on the letterbox beside the stage,
+   would have the room tone playing before Play had been pressed. All it does is
+   let speech through — the music is started from the Play button itself. */
 function unlockVoice() {
-  startRoomTone();          // the same first touch is what lets audio start
   if (!VO.enabled) return;
   try { window.speechSynthesis.resume(); } catch (err) { /* nothing to resume */ }
 }
@@ -2490,6 +2510,13 @@ function giveHint() {
    is off frame, and the talking waits for the camera. */
 function startStage(index, reveal) {
   state.gen += 1;                 // anything the last stage scheduled is void
+  /* And anything already handed to the browser. The token above voids our own
+     timers, but an utterance the speech engine has accepted is no longer ours to
+     stop that way — which is how the tutorial's "1, 2, 3, 4, 5, 6" was still
+     draining out over Level 1's screen. Cancelling after the bump is safe: the
+     cancelled utterance's `onend` runs, and the chain it would have continued is
+     already void. */
+  try { window.speechSynthesis.cancel(); } catch (err) { /* no engine */ }
   state.stageIndex = index;
   const stg = currentStage();
 
@@ -2676,13 +2703,42 @@ function bindKeyboard() {
 /* ------------------------------------------------------------
    Boot
    ------------------------------------------------------------ */
+/* Everything this page can make a noise with, silenced.
+
+   `speechSynthesis` is a service of the browser, not of the page: utterances
+   already queued keep speaking straight through a reload or a navigation. Under
+   a live-reloading server that is very loud — the page reloads, the new one puts
+   its Play button up, and the old one's counting carries on behind it with
+   nobody having clicked anything. Press Play and there are two counts going at
+   once.
+
+   So the queue is cleared when the page arrives, cleared again when it leaves,
+   and cleared while the tab is hidden — a tab nobody is looking at has no
+   business talking. */
+function silence() {
+  try { window.speechSynthesis.cancel(); } catch (err) { /* no engine */ }
+  if (roomTone) { roomTone.pause(); }
+}
+
 function initVoice() {
   if (!VO.enabled) return;
+  /* Anything left speaking from the page this one replaced. */
+  silence();
   voVoice = pickVoice();
   // Chrome populates the voice list asynchronously.
   window.speechSynthesis.onvoiceschanged = () => { voVoice = pickVoice(); };
   window.addEventListener('pointerdown', unlockVoice, { once: true });
   window.addEventListener('keydown', unlockVoice, { once: true });
+
+  // Leaving the page — reload, navigation, close — takes the sound with it.
+  window.addEventListener('pagehide', silence);
+  window.addEventListener('beforeunload', silence);
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { silence(); return; }
+    // Back again: the music resumes, but only if the game had started.
+    if (roomTone) { const p = roomTone.play(); if (p && p.catch) p.catch(() => {}); }
+  });
 }
 
 function init() {
@@ -2710,7 +2766,8 @@ function init() {
 function awaitStart() {
   const go = () => {
     begin.hidden = true;
-    unlockVoice();          // music, and speech is allowed from here
+    startRoomTone();        // nothing sounds until Play is pressed
+    unlockVoice();          // and speech is allowed from here
     if (reduceMotion) { playIntro(); return; }
     openWithFold();
   };
